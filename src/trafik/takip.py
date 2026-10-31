@@ -1,8 +1,12 @@
 """SAM tespitlerinden kareler arası araç takibi (saha koordinatlarında).
 
 Her tespit kalibrasyonla sahaya (ft) izdüşülür. İzler sabit hızla ileri
-tahmin edilir ve tespitlerle Macar algoritmasıyla eşlenir. Eşlenmeyen tespit
-yeni iz açar; birkaç kare görünmeyen iz kapanır.
+tahmin edilir ve tespitlerle Macar algoritmasıyla eşlenir:
+  - Önce oturmuş izler (en az `oturma` kez görülen), sonra yeni izler eşlenir;
+    böylece yeni açılmış bir iz, yanındaki oturmuş aracın tespitini çalamaz.
+  - Görülmeyen izin hızı sönümlenir; kırmızıda duran araç tahminde kaymaz.
+  - Sonunda kopuk izler birleştirilir: biri bittikten kısa süre sonra, tahmin
+    edilen konumun yakınında başlayan iz aynı araç sayılır.
 """
 
 from dataclasses import dataclass, field
@@ -28,13 +32,27 @@ def sahaya(H_px2saha: np.ndarray, kutular: np.ndarray) -> np.ndarray:
     return cv2.perspectiveTransform(merkez.reshape(-1, 1, 2).astype(np.float64), H_px2saha).reshape(-1, 2)
 
 
+def _esle(izler, indeksler, tahmin, noktalar, bos_nokta, kapi_ft):
+    """Verilen izleri boştaki noktalarla eşler; (iz indeksi, nokta indeksi) listesi döner."""
+    if not indeksler or not bos_nokta:
+        return []
+    bos = sorted(bos_nokta)
+    maliyet = np.linalg.norm(tahmin[indeksler][:, None, :] - noktalar[bos][None, :, :], axis=2)
+    satir, sutun = linear_sum_assignment(maliyet)
+    return [(indeksler[i], bos[j]) for i, j in zip(satir, sutun) if maliyet[i, j] <= kapi_ft]
+
+
 def takip_et(
     kareler: list[tuple[int, np.ndarray]],
     H_px2saha: np.ndarray,
     fps: float = 10.0,
-    kapi_ft: float = 12.0,
-    en_cok_kayip: int = 5,
+    kapi_ft: float = 10.0,
+    en_cok_kayip: int = 10,
     en_az_gorulme: int = 5,
+    oturma: int = 3,
+    sonum: float = 0.7,
+    birlestir_kare: int = 30,
+    birlestir_ft: float = 15.0,
 ) -> pd.DataFrame:
     """kareler: (kare_no, kutular[N,4+]) listesi, kare sırasına göre.
 
@@ -50,40 +68,80 @@ def takip_et(
         noktalar = sahaya(H_px2saha, kutular) if len(kutular) else np.empty((0, 2))
         tahmin = np.array([iz.konum + iz.hiz * dt for iz in izler]).reshape(-1, 2)
 
-        eslenen_iz, eslenen_nokta = set(), set()
-        if len(izler) and len(noktalar):
-            maliyet = np.linalg.norm(tahmin[:, None, :] - noktalar[None, :, :], axis=2)
-            satir, sutun = linear_sum_assignment(maliyet)
-            for i, j in zip(satir, sutun):
-                if maliyet[i, j] > kapi_ft:
-                    continue
-                iz = izler[i]
-                yeni_hiz = (noktalar[j] - iz.konum) / dt if dt > 0 else iz.hiz
-                iz.hiz = 0.6 * iz.hiz + 0.4 * yeni_hiz if iz.gorulme > 1 else yeni_hiz
-                iz.konum = noktalar[j]
-                iz.kayip = 0
-                iz.gorulme += 1
-                iz.gecmis.append((kare_no, *iz.konum))
-                eslenen_iz.add(i)
-                eslenen_nokta.add(j)
+        bos_nokta = set(range(len(noktalar)))
+        oturmus = [i for i, iz in enumerate(izler) if iz.gorulme >= oturma]
+        yeni = [i for i, iz in enumerate(izler) if iz.gorulme < oturma]
+        eslesme = _esle(izler, oturmus, tahmin, noktalar, bos_nokta, kapi_ft)
+        bos_nokta -= {j for _, j in eslesme}
+        eslesme += _esle(izler, yeni, tahmin, noktalar, bos_nokta, kapi_ft)
+        bos_nokta -= {j for _, j in eslesme}
+
+        eslenen_iz = set()
+        for i, j in eslesme:
+            iz = izler[i]
+            yeni_hiz = (noktalar[j] - iz.konum) / dt if dt > 0 else iz.hiz
+            iz.hiz = 0.6 * iz.hiz + 0.4 * yeni_hiz if iz.gorulme > 1 else yeni_hiz
+            iz.konum = noktalar[j]
+            iz.kayip = 0
+            iz.gorulme += 1
+            iz.gecmis.append((kare_no, *iz.konum))
+            eslenen_iz.add(i)
 
         kalan = []
         for i, iz in enumerate(izler):
             if i not in eslenen_iz:
                 iz.kayip += 1
                 iz.konum = tahmin[i]
+                iz.hiz = iz.hiz * sonum
             (biten if iz.kayip > en_cok_kayip else kalan).append(iz)
         izler = kalan
 
-        for j in range(len(noktalar)):
-            if j not in eslenen_nokta:
-                sayac += 1
-                izler.append(Iz(sayac, noktalar[j].copy(), gecmis=[(kare_no, *noktalar[j])]))
+        for j in sorted(bos_nokta):
+            sayac += 1
+            izler.append(Iz(sayac, noktalar[j].copy(), gecmis=[(kare_no, *noktalar[j])]))
 
-    satirlar = [
-        (iz.no, k, x, y)
-        for iz in biten + izler
-        if iz.gorulme >= en_az_gorulme
-        for k, x, y in iz.gecmis
-    ]
-    return pd.DataFrame(satirlar, columns=["iz", "kare", "x", "y"])
+    tumu = [iz for iz in biten + izler if iz.gorulme >= en_az_gorulme]
+    satirlar = [(iz.no, k, x, y) for iz in tumu for k, x, y in iz.gecmis]
+    df = pd.DataFrame(satirlar, columns=["iz", "kare", "x", "y"])
+    return birlestir(df, fps, birlestir_kare, birlestir_ft)
+
+
+def birlestir(df: pd.DataFrame, fps: float, en_cok_kare: int, esik_ft: float) -> pd.DataFrame:
+    """Biten bir izi, kısa süre sonra tahmini konumunun yakınında başlayan izle birleştirir."""
+    ozet = []
+    for no, g in df.groupby("iz", sort=False):
+        g = g.sort_values("kare")
+        son = g.tail(5)
+        sure = (son.kare.iloc[-1] - son.kare.iloc[0]) / fps
+        hiz = (son[["x", "y"]].iloc[-1].to_numpy() - son[["x", "y"]].iloc[0].to_numpy()) / sure if sure > 0 else np.zeros(2)
+        ozet.append((no, g.kare.iloc[0], g.kare.iloc[-1], g[["x", "y"]].iloc[0].to_numpy(),
+                     g[["x", "y"]].iloc[-1].to_numpy(), hiz))
+    baslangic = sorted(ozet, key=lambda o: o[1])
+
+    ebeveyn = {o[0]: o[0] for o in ozet}
+
+    def kok(n):
+        while ebeveyn[n] != n:
+            ebeveyn[n] = ebeveyn[ebeveyn[n]]
+            n = ebeveyn[n]
+        return n
+
+    kullanildi = set()
+    for no, _, bitis, _, son_konum, hiz in sorted(ozet, key=lambda o: o[2]):
+        en_iyi, en_iyi_mesafe = None, esik_ft
+        for no2, bas2, _, ilk_konum, _, _ in baslangic:
+            if bas2 <= bitis:
+                continue
+            if bas2 - bitis > en_cok_kare:
+                break
+            if no2 in kullanildi:
+                continue
+            tahmin = son_konum + hiz * (bas2 - bitis) / fps
+            mesafe = np.linalg.norm(tahmin - ilk_konum)
+            if mesafe < en_iyi_mesafe:
+                en_iyi, en_iyi_mesafe = no2, mesafe
+        if en_iyi is not None:
+            kullanildi.add(en_iyi)
+            ebeveyn[kok(en_iyi)] = kok(no)
+
+    return df.assign(iz=df.iz.map(kok))

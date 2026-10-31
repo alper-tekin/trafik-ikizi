@@ -63,6 +63,9 @@ def main() -> None:
 
     e = pd.DataFrame(eslesmeler, columns=["kare", "arac", "iz", "hata"])
     parca = e.groupby("arac").iz.nunique()
+    # Katı ölçü, kuyruktaki komşu araca tek karelik kaymayı da bölünme sayar;
+    # baskın iz payı, aracın görüldüğü sürenin ne kadarının tek izde geçtiğini verir.
+    baskin = e.groupby("arac").iz.agg(lambda s: s.value_counts().iloc[0] / len(s))
     sonuc = {
         "iz_sayisi": int(izler.iz.nunique()),
         "gercek_arac_sayisi": int(e.arac.nunique()),
@@ -71,6 +74,8 @@ def main() -> None:
         "hata_p90_ft": float(e.hata.quantile(0.9)),
         "parca_medyan": float(parca.median()),
         "tek_izde_arac_orani": float((parca == 1).mean()),
+        "baskin_iz_payi_medyan": float(baskin.median()),
+        "baskin_pay_90_ustu_arac_orani": float((baskin >= 0.9).mean()),
     }
     json.dump(sonuc, open("data/takip_degerlendirme.json", "w", encoding="utf-8"), indent=2)
     for k, v in sonuc.items():
