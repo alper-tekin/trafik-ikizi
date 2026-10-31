@@ -1,0 +1,7 @@
+numpy
+opencv-python-headless
+openai
+python-dotenv
+pandas
+pyarrow
+scipy
