@@ -1,8 +1,8 @@
 """Kavşak 2'nin SUMO modelini videodan çıkarılan veriyle kurar.
 
-  - Ağ: dört kollu kavşak. Lankershim her yönde 3 şerit, güneye gidişte
-    ayrıca sol dönüş cebi; ara sokak her yönde 2 şerit (NGSIM şerit
-    etiketlerinden).
+  - Ağ: kolların yönü, şerit sayısı/genişliği/yanal yeri, durma çizgileri ve
+    kavşak alanı videodaki izlerden ölçülür (geometri.py, data/geometri.json).
+    Kavşak kare değil: batı kolu ~18° eğik, durma çizgileri 16-20 m arasında.
   - Talep: video penceresindeki yön x hareket sayımları -> araç/saat.
   - Sinyal: döngü ve yeşil süreleri data/sinyal_plani.json'dan; sarı 3 s,
     tüm-kırmızı 1 s. Ara sokağın yeşili döngünün kalanıdır.
@@ -20,15 +20,6 @@ YON_KOL = {2: "G", 4: "K", 1: "B", 3: "D"}  # gidiş yönü -> giriş kolu
 HAREKET_HARF = {1: "s", 2: "l", 3: "r"}
 SAAT = 3600.0
 
-# kol: (u, w) birim yön, şerit sayısı (giriş, çıkış). NGSIM şerit etiketlerinden:
-# kuzeye giden yaklaşım 4 şerit + sağ cep (11); güneye giden 3 şerit + 2 sol cep
-# (11, 12); güneye çıkış 4, kuzeye çıkış 3 şerit.
-KOLLAR = {
-    "K": ((1, 0), 5, 3),
-    "G": ((-1, 0), 5, 4),
-    "D": ((0, 1), 2, 2),
-    "B": ((0, -1), 2, 2),
-}
 # giriş kolu, hareket -> çıkış kolu
 CIKIS = {
     ("K", 1): "G", ("K", 2): "D", ("K", 3): "B",
@@ -44,24 +35,77 @@ def _sumo_bin(ad: str) -> str:
     return str(Path(sumo.SUMO_HOME) / "bin" / ad)
 
 
-def ag_yaz(klasor: Path) -> Path:
-    dugum = ['<nodes>', '  <node id="M" x="0" y="0" type="traffic_light"/>']
+# Şerit -> hareket eşlemesi (şerit 0 = en sağ/en dış). Ölçülen şerit sayılarına göre:
+# güneye gidiş 3 düz + 2 sol cep (sol talep 510 araç/saat), kuzeye gidiş sağ cep + 3 düz +
+# bir sol, ara sokaklar sağ+düz / düz / sol+düz.
+SERIT_HAREKET = {
+    "K": [("r", "s"), ("s",), ("s",), ("l",), ("l",)],
+    "G": [("r",), ("s",), ("s",), ("s",), ("l",)],
+    "D": [("r", "s"), ("s",), ("s", "l")],
+    "B": [("r", "s"), ("s",), ("s", "l")],
+}
+HARF_HAREKET = {"s": 1, "l": 2, "r": 3}
+
+
+def _xy(p) -> str:
+    """(u kuzey, w doğu) -> SUMO 'x,y' (x doğu, y kuzey)."""
+    return f"{p[1]:.2f},{p[0]:.2f}"
+
+
+def ag_yaz(klasor: Path, geo: dict | None = None) -> Path:
+    import numpy as np
+
+    from trafik import geometri
+
+    geo = geo or geometri.yukle()
+    kavsak = " ".join(_xy(p) for p in geo["kavsak"])
+    dugum = ['<nodes>', f'  <node id="M" x="0" y="0" type="traffic_light" shape="{kavsak}"/>']
     kenar = ['<edges>']
-    for k, ((u, w), n_giris, n_cikis) in KOLLAR.items():
-        # SUMO'da x doğu, y kuzey
-        x, y = w * KOL_UZUNLUK_M, u * KOL_UZUNLUK_M
-        dugum.append(f'  <node id="{k}" x="{x}" y="{y}" type="priority"/>')
-        kenar.append(f'  <edge id="{k}_gir" from="{k}" to="M" numLanes="{n_giris}" speed="13.9"/>')
-        kenar.append(f'  <edge id="{k}_cik" from="M" to="{k}" numLanes="{n_cikis}" speed="13.9"/>')
+    for k, g in geo["kollar"].items():
+        e, n, t = np.array(g["e"]), np.array(g["n"]), g["durma_m"]
+        gi, gc = g["gelen"], g["giden"]
+        # Gelen şeritler içe doğru gider, sağları -n tarafında; spreadType="right" ile
+        # şeritler kenar çizgisinin sağına dizilir, çizgi en iç şeridin sol kenarıdır.
+        sol_gi = max(gi["merkez"]) + gi["genislik"] / 2
+        sol_gc = min(gc["merkez"]) - gc["genislik"] / 2
+        uzak_gi, yakin_gi = e * KOL_UZUNLUK_M + n * sol_gi, e * t + n * sol_gi
+        yakin_gc, uzak_gc = e * t + n * sol_gc, e * KOL_UZUNLUK_M + n * sol_gc
+        dugum.append(f'  <node id="{k}_g" x="{uzak_gi[1]:.2f}" y="{uzak_gi[0]:.2f}" type="priority"/>')
+        dugum.append(f'  <node id="{k}_c" x="{uzak_gc[1]:.2f}" y="{uzak_gc[0]:.2f}" type="priority"/>')
+        kenar.append(f'  <edge id="{k}_gir" from="{k}_g" to="M" numLanes="{gi["n"]}" speed="13.9" '
+                     f'width="{gi["genislik"]:.2f}" spreadType="right" shape="{_xy(uzak_gi)} {_xy(yakin_gi)}"/>')
+        kenar.append(f'  <edge id="{k}_cik" from="M" to="{k}_c" numLanes="{gc["n"]}" speed="13.9" '
+                     f'width="{gc["genislik"]:.2f}" spreadType="right" shape="{_xy(yakin_gc)} {_xy(uzak_gc)}"/>')
     dugum.append('</nodes>')
     kenar.append('</edges>')
+
+    # Şerit bağlantıları: düzler sağdan sağa, soller en soldaki giden şeritlere, sağlar en sağa.
+    baglanti = ['<connections>']
+    for k, seritler in SERIT_HAREKET.items():
+        n_gelen = geo["kollar"][k]["gelen"]["n"]
+        seritler = seritler[:n_gelen] + [("s",)] * max(0, n_gelen - len(seritler))
+        for hedef_harf in ("s", "l", "r"):
+            hedef = CIKIS[(k, HARF_HAREKET[hedef_harf])]
+            n_giden = geo["kollar"][hedef]["giden"]["n"]
+            kaynak = [i for i, h in enumerate(seritler) if hedef_harf in h]
+            for j, i in enumerate(kaynak):
+                if hedef_harf == "s":
+                    to = min(j, n_giden - 1)
+                elif hedef_harf == "l":
+                    to = n_giden - 1 - (len(kaynak) - 1 - j)
+                else:
+                    to = 0
+                baglanti.append(f'  <connection from="{k}_gir" to="{hedef}_cik" fromLane="{i}" toLane="{max(0, to)}"/>')
+    baglanti.append('</connections>')
+
     (klasor / "ag.nod.xml").write_text("\n".join(dugum), encoding="utf-8")
     (klasor / "ag.edg.xml").write_text("\n".join(kenar), encoding="utf-8")
+    (klasor / "ag.con.xml").write_text("\n".join(baglanti), encoding="utf-8")
     ag = klasor / "ag.net.xml"
     # SUMO, ASCII dışı karakter içeren tam yolları (ör. "Masaüstü") açamıyor;
     # klasörün içinden göreli adlarla çalıştırılır.
     subprocess.run(
-        [_sumo_bin("netconvert"), "-n", "ag.nod.xml", "-e", "ag.edg.xml", "-o", ag.name,
+        [_sumo_bin("netconvert"), "-n", "ag.nod.xml", "-e", "ag.edg.xml", "-x", "ag.con.xml", "-o", ag.name,
          "--no-turnarounds", "--tls.default-type", "static", "--no-warnings"],
         check=True, cwd=klasor, env=_ortam(),
     )

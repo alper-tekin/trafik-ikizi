@@ -93,6 +93,18 @@ function networkImage(W) {
   const ctx = c.getContext('2d'), lanes = AG.seritler;
   ctx.fillStyle = '#0d1410'; ctx.fillRect(0, 0, gr.W, gr.H);
 
+  // Zemin: videodan çıkarılan araçsız yol fotoğrafı (kameranın kendi kadrajında, birebir).
+  // Gerçek şerit çizgileri, geçitler ve oklar fotoğraftan gelir; araçlar öne çıksın diye karartılır.
+  if (window.ARKA_PLAN) {
+    ctx.filter = 'saturate(0.45) brightness(0.6) contrast(1.05)';
+    ctx.drawImage(window.ARKA_PLAN, 0, 0, gr.W, gr.H);
+    ctx.filter = 'none';
+    yaziVePusula(ctx, gr);
+    netCache.set(W, c);
+    return c;
+  }
+
+  // Fotoğraf yoksa yedek: ağın şematik çizimi.
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 1.8, '#3a434e'); }  // kaldırım
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 0.05, '#262b32'); }  // asfalt
   yerCokgen(ctx, gr, AG.kavsak, '#262b32');
