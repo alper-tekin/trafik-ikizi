@@ -85,13 +85,15 @@
   <h2>1 · See</h2>
   <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
-     2-second track trails. Right: the same tracks projected to the ground, in metres, north up.
-     The camera calibration was solved from the data, with no hand-placed points.</p>
+     2-second track trails. Right: the same tracked cars on the ground, north up, synced to the video.
+     The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
+     recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
     <div class="card"><video id="video" src="/static/video_katman.mp4" controls muted playsinline preload="metadata"></video></div>
-    <div class="card"><canvas id="bev" width="560" height="420"></canvas>
+    <div class="card twin"><canvas id="bev"></canvas>
       <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
-        <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span></div>
+        <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span>
+        <span>· lane layout from the twin's network</span></div>
     </div>
   </div>
 </section>
@@ -109,6 +111,9 @@
     <div class="card"><h4>Queue across the signal cycle, from north</h4><div class="chart"><canvas id="qK"></canvas></div></div>
     <div class="card"><h4>Queue across the signal cycle, from south</h4><div class="chart"><canvas id="qG"></canvas></div>
       <div class="note" id="calNote"></div></div>
+    <div class="card"><h4>Average wait per car, by approach</h4><div class="chart"><canvas id="waitChart"></canvas></div>
+      <div class="note">Time spent below 1 m/s while approaching, within the 75 m the camera sees. Same definition for all three sources.</div></div>
+    <div class="card"><h4>How far to trust each approach</h4><div class="note" id="waitNote" style="margin-top:0"></div></div>
   </div>
 </section>
 
@@ -149,6 +154,11 @@
     </div>
   </div>
   <div class="card" style="margin-top:14px">
+    <h4>Average wait per car, by approach · full simulation, 10 random seeds the agent never saw</h4>
+    <table id="waitTable"></table>
+    <div class="note">Time stopped (below 0.1 m/s) anywhere on the approach, not only inside the camera view.</div>
+  </div>
+  <div class="card" style="margin-top:14px">
     <div class="row" style="margin-bottom:8px">
       <button id="simPlay">Play</button>
       <select id="simSpeed" class="ghost"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select>
@@ -182,10 +192,8 @@ let OZET, BEV, SIM_A, SIM_B, AG;
 async function load() {
   // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
-  [OZET, BEV] = await Promise.all(['ozet', 'kusbakisi'].map(veri));
-  kpis(); counts(); signal(); queues(); bevLoop();
-  [SIM_A, SIM_B, AG] = await Promise.all(['sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
-  simSetup();
+  [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', 'sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
+  kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
 
@@ -248,32 +256,36 @@ function queues() {
     `The video itself is ${k.video_vs_ngsim_rmse.toFixed(1)} off, which is the floor for this measurement. The largest gains came from the lead-lag phase order and the turn-bay lane counts, not from driver parameters.`;
 }
 
-// --- kuşbakışı ---
-function bevLoop() {
-  const cv = $('#bev'), ctx = cv.getContext('2d'), v = $('#video');
-  const S = 2.4, cx = cv.width / 2, cy = cv.height / 2;  // px per metre
-  const trail = new Map();
-  function draw() {
-    const f = Math.round(v.currentTime * 5) * 2;
-    ctx.fillStyle = '#0b0e13'; ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.fillStyle = '#1c222b';  // yollar: Lankershim dikey, ara sokak yatay
-    ctx.fillRect(cx - 22 * S, 0, 44 * S, cv.height); ctx.fillRect(0, cy - 14 * S, cv.width, 28 * S);
-    ctx.fillStyle = '#8b949e'; ctx.font = '12px system-ui';
-    ctx.fillText('N ↑  Lankershim Blvd', cx + 24 * S, 16); ctx.fillText('Universal Hollywood Dr', 8, cy - 15 * S);
-    const pts = BEV.kareler[f] || [];
-    const seen = new Set();
-    for (const [id, u, w, , h] of pts) {
-      const x = cx + w * S, y = cy - u * S; seen.add(id);
-      const tr = trail.get(id) || []; tr.push([x, y]); if (tr.length > 10) tr.shift(); trail.set(id, tr);
-      ctx.strokeStyle = MOVE_COLOR[h] + '88'; ctx.lineWidth = 2; ctx.beginPath();
-      tr.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.stroke();
-      ctx.fillStyle = MOVE_COLOR[h]; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
-    }
-    for (const id of trail.keys()) if (!seen.has(id)) trail.delete(id);
-    ctx.fillStyle = '#8b949e'; ctx.fillText(`${pts.length} tracked · t = ${v.currentTime.toFixed(1)} s`, 8, cv.height - 8);
-    requestAnimationFrame(draw);
-  }
-  draw();
+// --- yol başına bekleme ---
+const ARM_NAME = { K: 'From north', G: 'From south', D: 'From east', B: 'From west' };
+const ARM_EN = { 'from north (southbound)': 'K', 'from south (northbound)': 'G', 'from east': 'D', 'from west': 'B' };
+function waits() {
+  const w = OZET.bekleme.kamera_penceresi, arms = ['K', 'G', 'D', 'B'];
+  new Chart($('#waitChart'), {
+    type: 'bar',
+    data: { labels: arms.map(a => ARM_NAME[a]), datasets: [
+      { label: 'Video (SAM 3.1 tracks)', data: arms.map(a => w.video[a]?.ort_s), backgroundColor: '#58a6ff' },
+      { label: 'Ground truth (NGSIM)', data: arms.map(a => w.ngsim[a]?.ort_s), backgroundColor: '#3fb950' },
+      { label: 'Twin (SUMO, current plan)', data: arms.map(a => w.ikiz[a]?.ort_s), backgroundColor: '#f0b429' },
+    ]},
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'seconds per car' } } },
+      plugins: { tooltip: { callbacks: { afterLabel: c => {
+        const src = ['video', 'ngsim', 'ikiz'][c.datasetIndex], r = w[src][arms[c.dataIndex]];
+        return r ? `median ${r.medyan_s} s · ${r.n} cars` : ''; } } } } }
+  });
+  const fark = a => { const v = ['video', 'ngsim', 'ikiz'].map(s => w[s][a].ort_s); return (Math.max(...v) - Math.min(...v)).toFixed(1); };
+  $('#waitNote').innerHTML = `<p><b>From north</b> and <b>from east</b>: the three sources agree within ${fark('K')} s and ${fark('D')} s.</p>
+    <p><b>From south</b>: the video reads lower (${w.video.G.ort_s} s vs ${w.ngsim.G.ort_s} s) because this approach runs into the
+      bottom edge of the frame, so the back of the queue is often out of view.</p>
+    <p><b>From west</b>: ground truth reads low (${w.ngsim.B.ort_s} s) because NGSIM only starts tracking side-street cars close to
+      the intersection. The twin (${w.ikiz.B.ort_s} s) is the least certain value here.</p>`;
+  const p = OZET.bekleme.planlar_10_tohum, rows = Object.keys(p.mevcut.kol_bekleme_s);
+  $('#waitTable').innerHTML = '<tr><th>Approach</th><th></th><th>Current plan</th><th>Recommended</th><th>Change</th></tr>' +
+    rows.map(k => { const a = p.mevcut.kol_bekleme_s[k], b = p.onerilen.kol_bekleme_s[k], d = +(b - a).toFixed(1);
+      return `<tr><td>${ARM_NAME[ARM_EN[k]]}</td><td></td><td>${a} s</td><td>${b} s</td>
+        <td style="color:${d < -0.5 ? 'var(--good)' : d > 0.5 ? 'var(--bad)' : 'var(--muted)'}">${d > 0 ? '+' : ''}${d} s</td></tr>`; }).join('') +
+    `<tr><td><b>All cars</b></td><td></td><td><b>${p.mevcut.arac_basi_durma_bekleme_s} s</b></td><td><b>${p.onerilen.arac_basi_durma_bekleme_s} s</b></td>
+      <td style="color:var(--good)"><b>${(p.onerilen.arac_basi_durma_bekleme_s - p.mevcut.arac_basi_durma_bekleme_s).toFixed(1)} s</b></td></tr>`;
 }
 
 // --- ajan ---

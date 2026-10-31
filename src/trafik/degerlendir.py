@@ -90,6 +90,8 @@ def degerlendir(plan: dict, sayim: dict, surucu: dict, tohumlar=(1, 2, 3)) -> di
         "arac_basi_durma_bekleme_s": round(float(d.bekleme.mean()), 1),
         "tamamlanan_arac": int(len(d) / len(tohumlar)),
         "kol_gecikme_s": {KOL_ADI[k]: v for k, v in kol.items()},
+        # SUMO waitingTime: hızın 0,1 m/s altında geçen süre (araç başı, kol ortalaması)
+        "kol_bekleme_s": {KOL_ADI[k]: round(float(v), 1) for k, v in d.groupby("kol").bekleme.mean().items()},
         "hareket_gecikme_s": {f"{KOL_ADI[k]} {HAREKET_ADI[h]}": v for (k, h), v in hareket.items()},
     }
 

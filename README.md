@@ -74,6 +74,18 @@ The instructions require that every number comes from a tool result, that per-ap
 
 The recommendation shortens the southbound-only lead and gives the time to the shared Lankershim green. No approach gets worse: from west −2.4 s, from east −2.7 s, from south −5.3 s, from north 0.0 s.
 
+**Average wait per car, by approach** (time stopped, whole simulation, 10 random seeds the agent never saw):
+
+| Approach | Current plan | Recommended | Change |
+|---|---|---|---|
+| From west | 22.7 s | 19.4 s | −3.3 s |
+| From east | 13.8 s | 11.0 s | −2.8 s |
+| From south | 18.7 s | 14.7 s | −4.0 s |
+| From north | 16.2 s | 16.2 s | 0.0 s |
+| All cars | 17.4 s | 15.6 s | −1.8 s |
+
+The same wait measure, restricted to the 75 m the camera sees, was also computed from the video, from ground truth and from the twin. From north the three agree within 0.8 s (15.0 / 15.3 / 14.5 s) and from east within 3.4 s. From south the video reads low, because the queue runs off the bottom of the frame. From west the ground truth reads low, because NGSIM starts tracking side-street cars only near the intersection.
+
 **Verifier** (`dogrula` in `ajan.py`). The agent's answer is never trusted on its own word. The verifier checks that:
 - the recommended plan was actually simulated by the agent ✓
 - the reported baseline and recommended delays match a fresh re-simulation ✓

@@ -61,6 +61,28 @@ def kuyruk_profili(d: pd.DataFrame, dongu: float, faz0: float, adim: float = 1.0
     return say.groupby(faz).mean()
 
 
+def bekleme_sureleri(d: pd.DataFrame, en_cok_adim_s: float = 1.0) -> pd.DataFrame:
+    """Araç başına bekleme süresi: giriş kolunda, merkeze 75 m'den yakınken
+    hızın 1 m/s altında geçen toplam süre. Örnekleme farklı kaynaklarda farklı
+    (video 0,2 s, NGSIM 0,1 s, SUMO 0,5 s); her nokta bir sonraki noktaya kadar
+    geçen süreyi temsil eder, takipteki boşluklar en_cok_adim_s ile sınırlanır.
+    Kameranın gördüğü 75 m'nin ötesindeki bekleme sayılmaz."""
+    d = d.sort_values(["arac", "t"])
+    dt = (d.groupby("arac").t.shift(-1) - d.t).clip(upper=en_cok_adim_s).fillna(0)
+    bekliyor = yaklasimda(d) & (d.hiz < DURGUN_MS)
+    goruldu = yaklasimda(d).groupby(d.arac).any()
+    s = (dt * bekliyor).groupby(d.arac).sum()
+    bilgi = d.groupby("arac")[["giris", "yon", "hareket"]].first()
+    return bilgi.assign(bekleme_s=s)[goruldu]
+
+
+def kol_bekleme_ozeti(b: pd.DataFrame) -> dict:
+    """Kol başına ortalama/medyan bekleme ve araç sayısı."""
+    g = b.groupby("giris").bekleme_s
+    return {k: {"ort_s": round(float(v.mean()), 1), "medyan_s": round(float(v.median()), 1), "n": int(len(v))}
+            for k, v in g}
+
+
 def gecis_sureleri(d: pd.DataFrame) -> pd.DataFrame:
     ic = d[np.hypot(d.u, d.w) < GECIS_M]
     s = ic.groupby("arac").agg(t0=("t", "min"), t1=("t", "max"), yon=("yon", "first"), hareket=("hareket", "first"))

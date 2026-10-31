@@ -115,8 +115,27 @@ def main() -> None:
     q_sumo = olcum.kuyruk_profili(calistir(cfg), C, sim_faz0())
 
     ajan = son_ajan_kosusu()
-    onerilen = ajan["cevap"]["recommended_plan"]
-    sim_onerilen = oynatma({k: float(v) for k, v in onerilen.items()}, sayim, surucu, "arayuz_onerilen")
+    onerilen = {k: float(v) for k, v in ajan["cevap"]["recommended_plan"].items()}
+    sim_onerilen = oynatma(onerilen, sayim, surucu, "arayuz_onerilen")
+
+    # Yol başına bekleme. (1) Kameranın gördüğü 75 m içinde, aynı tanımla:
+    # video, NGSIM ve ikiz (mevcut plan, 3 tohum). (2) İki planın karşılaştırması:
+    # ikizdeki toplam bekleme (SUMO waitingTime), ajanın görmediği 10 tohumda.
+    from trafik.degerlendir import degerlendir
+    sim_noktalari = pd.concat([calistir(cfg, tohum=s).assign(arac=lambda x, s=s: x.arac + f"#{s}") for s in (1, 2, 3)])
+    sim_noktalari = sim_noktalari[sim_noktalari.t < SURE_S]
+    bekleme = {
+        "kamera_penceresi": {
+            "video": olcum.kol_bekleme_ozeti(olcum.bekleme_sureleri(video)),
+            "ngsim": olcum.kol_bekleme_ozeti(olcum.bekleme_sureleri(ngsim)),
+            "ikiz": olcum.kol_bekleme_ozeti(olcum.bekleme_sureleri(sim_noktalari)),
+        },
+        "planlar_10_tohum": {
+            ad: {k: degerlendir(p, sayim, surucu, tuple(range(11, 21)))[k]
+                 for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+            for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
+        },
+    }
 
     ozet = {
         "sayimlar": pd.read_csv("data/akis_karsilastirma.csv").to_dict(orient="records"),
@@ -131,6 +150,7 @@ def main() -> None:
         "takip": json.load(open("data/takip_degerlendirme.json", encoding="utf-8")),
         "kamera": json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8")),
         "mevcut_plan": mevcut,
+        "bekleme": bekleme,
         "ajan": {k: ajan[k] for k in ("soru", "model", "adimlar", "cevap", "dogrulama")},
     }
     yaz("ozet.json", ozet)
