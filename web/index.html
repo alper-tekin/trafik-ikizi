@@ -85,7 +85,7 @@
   <h2>1 · See</h2>
   <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
-     2-second track trails. Right: the same tracked cars drawn on the ground from the same camera angle, synced to the video.
+     2-second track trails. Right: the same tracked cars on a top-down map turned to match the video, synced to it.
      The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
      recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
@@ -138,7 +138,7 @@
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
   <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
-     Drawn from the same camera angle as the video. The road, sidewalks, crosswalk, lane lines and arrows are SAM 3.1 segments of the video with the cars removed; where the paint is too faint to see (the south and east arms), lane dividers come from where the tracked cars actually drove. The simulation network was built from measurements of the tracked cars: arm directions (the west arm is skewed about 18 degrees), lane counts and widths, and stop line positions. Cars with lit brake lights are stopped.</p>
+     A top-down map turned to match the video, so every road runs the same way as on screen. The simulation network was built from measurements of the tracked cars: arm directions (the west arm is skewed about 18 degrees), lane counts and widths, and stop line positions. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
       <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>
@@ -193,8 +193,6 @@ async function load() {
   // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
   [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', 'sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
-  // Yol katmanları: araçsız yol fotoğrafından SAM 3.1 ile (scripts/sahne_katmanlari.py)
-  window.SAHNE = await veri('sahne').catch(() => null);
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
