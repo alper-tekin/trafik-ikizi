@@ -32,14 +32,16 @@ def calistir(cfg: Path, isinma_s: float = 120.0, tohum: int = 1) -> pd.DataFrame
                 continue
             for v in traci.vehicle.getIDList():
                 x, y = traci.vehicle.getPosition(v)
-                kayit.append((t - isinma_s, v, x - mx, y - my, traci.vehicle.getSpeed(v)))
+                kayit.append((t - isinma_s, v, x - mx, y - my, traci.vehicle.getSpeed(v),
+                              traci.vehicle.getAngle(v)))
         traci.close()
     finally:
         os.chdir(eski)
         os.environ.clear()
         os.environ.update(env)
 
-    d = pd.DataFrame(kayit, columns=["t", "arac", "w", "u", "hiz"])  # SUMO: x doğu, y kuzey
+    # SUMO: x doğu, y kuzey; açı derece, 0 = kuzey, saat yönünde
+    d = pd.DataFrame(kayit, columns=["t", "arac", "w", "u", "hiz", "aci"])
     akis = d.arac.str.split(".").str[0]
     return d.assign(giris=akis.str[0], yon=akis.str[0].map(GIRIS_YON), hareket=akis.str[1].map(HAREKET))[
-        ["t", "arac", "giris", "yon", "hareket", "u", "w", "hiz"]]
+        ["t", "arac", "giris", "yon", "hareket", "u", "w", "hiz", "aci"]]

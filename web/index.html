@@ -57,6 +57,17 @@
   a.clip { color: var(--accent); cursor: pointer; text-decoration: underline; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  .twin canvas { aspect-ratio: 1 / 1; background: #0d1410; }
+  .twinhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .twinhead h4 { margin: 0; }
+  .phasebar { display: flex; height: 8px; border-radius: 4px; margin-bottom: 8px; position: relative; }
+  .phasebar span { height: 100%; }
+  .phasebar span:first-child { border-radius: 4px 0 0 4px; } .phasebar span:last-of-type { border-radius: 0 4px 4px 0; }
+  .phasebar i { position: absolute; top: -3px; width: 2px; height: 14px; background: #fff; border-radius: 1px; }
+  .twinstats { display: flex; gap: 22px; margin-top: 8px; }
+  .twinstats b { font-size: 24px; font-variant-numeric: tabular-nums; display: block; }
+  .twinstats span { color: var(--muted); font-size: 12px; }
+  select.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: 600 14px system-ui; }
   footer { color: var(--muted); font-size: 13px; margin-top: 48px; border-top: 1px solid var(--line); padding-top: 14px; }
 </style>
 </head>
@@ -121,12 +132,31 @@
 <section>
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
-  <p class="lead">Same demand, same random seed, 5 minutes after warm-up. Dot colour shows speed: red is stopped.</p>
+  <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
+     Lanes, turn bays and signal links come straight from the simulation network. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
-    <div class="card"><h4 id="simAh">Current plan</h4><canvas id="simA" width="520" height="420"></canvas></div>
-    <div class="card"><h4 id="simBh">Recommended plan</h4><canvas id="simB" width="520" height="420"></canvas></div>
+    <div class="card twin">
+      <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>
+      <div class="phasebar" id="simAbar"></div>
+      <canvas id="simA"></canvas>
+      <div class="twinstats"><div><b id="simAnow">0</b><span>stopped now</span></div><div><b id="simAcum">0</b><span>vehicle-minutes stopped</span></div></div>
+    </div>
+    <div class="card twin">
+      <div class="twinhead"><h4 id="simBh">Recommended plan</h4><span class="pill" id="simBphase"></span></div>
+      <div class="phasebar" id="simBbar"></div>
+      <canvas id="simB"></canvas>
+      <div class="twinstats"><div><b id="simBnow">0</b><span>stopped now</span></div><div><b id="simBcum">0</b><span>vehicle-minutes stopped</span></div></div>
+    </div>
   </div>
-  <div class="row" style="margin-top:10px"><button id="simPlay" class="ghost">Play</button><input id="simT" type="range" min="0" max="599" value="0" style="flex:1"><span class="pill" id="simClock">0 s</span></div>
+  <div class="card" style="margin-top:14px">
+    <div class="row" style="margin-bottom:8px">
+      <button id="simPlay">Play</button>
+      <select id="simSpeed" class="ghost"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select>
+      <input id="simT" type="range" min="0" max="299" step="0.1" value="0" style="flex:1">
+      <span class="pill" id="simClock">0:00</span>
+    </div>
+    <div class="chart" style="height:170px"><canvas id="simChart"></canvas></div>
+  </div>
 </section>
 
 <footer>
@@ -137,6 +167,7 @@
 </footer>
 </main>
 
+<script src="/static/ikiz.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const MOVE_COLOR = {1: getVar('--thru'), 2: getVar('--left'), 3: getVar('--right'), 0: getVar('--unk')};
@@ -146,12 +177,14 @@ const DIR_TR = {"doğuya": "Eastbound", "kuzeye": "Northbound", "batıya": "West
 function getVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
 Chart.defaults.color = '#8b949e'; Chart.defaults.borderColor = '#2a313c'; Chart.defaults.font.family = 'system-ui'; Chart.defaults.maintainAspectRatio = false;
 
-let OZET, BEV, SIM_A, SIM_B;
+let OZET, BEV, SIM_A, SIM_B, AG;
 
 async function load() {
-  [OZET, BEV] = await Promise.all([fetch('/veri/ozet.json').then(r => r.json()), fetch('/veri/kusbakisi.json').then(r => r.json())]);
+  // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
+  const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
+  [OZET, BEV] = await Promise.all(['ozet', 'kusbakisi'].map(veri));
   kpis(); counts(); signal(); queues(); bevLoop();
-  [SIM_A, SIM_B] = await Promise.all([fetch('/veri/sim_mevcut.json').then(r => r.json()), fetch('/veri/sim_onerilen.json').then(r => r.json())]);
+  [SIM_A, SIM_B, AG] = await Promise.all(['sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
   simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
@@ -308,53 +341,7 @@ function runAgent(live) {
 $('#run').onclick = () => runAgent(false);
 $('#runLive').onclick = () => runAgent(true);
 
-// --- simülasyon karşılaştırma ---
-function lightState(sim, t) {
-  const C = sim.fazlar.reduce((s, f) => s + f.sure, 0);
-  let x = (sim.baslangic_s + 120 + t) % C;  // 120 s ısınma, kayıt zamanından çıkarılmıştı
-  for (const f of sim.fazlar) { if (x < f.sure) return f.durum; x -= f.sure; }
-  return sim.fazlar[0].durum;
-}
-function drawSim(cv, sim, t) {
-  const ctx = cv.getContext('2d'), S = 1.9, cx = cv.width / 2, cy = cv.height / 2;
-  ctx.fillStyle = '#0b0e13'; ctx.fillRect(0, 0, cv.width, cv.height);
-  ctx.fillStyle = '#1c222b'; ctx.fillRect(cx - 22 * S, 0, 44 * S, cv.height); ctx.fillRect(0, cy - 14 * S, cv.width, 28 * S);
-  const st = lightState(sim, t), col = c => ({ G: '#3fb950', g: '#3fb95088', y: '#d29922', r: '#f85149' }[c] || '#f85149');
-  const lamps = [['gd', cx - 12 * S, cy - 18 * S], ['ks', cx - 4 * S, cy - 18 * S], ['kd', cx + 12 * S, cy + 18 * S], ['db', cx + 30 * S, cy - 8 * S], ['db', cx - 30 * S, cy + 8 * S]];
-  for (const [g, x, y] of lamps) { ctx.fillStyle = col(st[g]); ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); }
-  const key = (Math.round(t * 2) / 2).toFixed(1);
-  const pts = sim.kareler[key] || [];
-  let stopped = 0;
-  for (const [, u, w, h] of pts) {
-    if (h < 1) stopped++;
-    ctx.fillStyle = h < 1 ? '#f85149' : h < 5 ? '#d29922' : '#e6edf3';
-    ctx.beginPath(); ctx.arc(cx + w * S, cy - u * S, 3, 0, 7); ctx.fill();
-  }
-  ctx.fillStyle = '#8b949e'; ctx.font = '12px system-ui';
-  ctx.fillText(`${stopped} stopped now · ${Math.round(cumStopped(sim, t) / 60)} vehicle-minutes stopped so far`, 8, cv.height - 8);
-}
-// Oynatmanın başından t'ye kadar duran araç-saniye toplamı (2 Hz kayıt, her kare 0,5 s).
-function cumStopped(sim, t) {
-  if (!sim._cum) {
-    const keys = Object.keys(sim.kareler).map(Number).sort((a, b) => a - b);
-    let acc = 0; sim._cum = new Map();
-    for (const k of keys) { acc += sim.kareler[k.toFixed(1)].filter(p => p[3] < 1).length * 0.5; sim._cum.set(k.toFixed(1), acc); }
-  }
-  return sim._cum.get((Math.round(t * 2) / 2).toFixed(1)) || 0;
-}
-function simSetup() {
-  const pa = SIM_A.plan, pb = SIM_B.plan;
-  const lbl = p => `left ${p.sol_onde} · SB lead ${p.guney_onde} · shared ${p.ortak} · cross ${p.ara_sokak}`;
-  $('#simAh').textContent = 'Current plan (from video) · ' + lbl(pa);
-  $('#simBh').textContent = 'Recommended by agent · ' + lbl(pb);
-  const max = Object.keys(SIM_A.kareler).length / 2 - 1; $('#simT').max = max;
-  let t = 0, playing = false, last = 0;
-  const render = () => { drawSim($('#simA'), SIM_A, t); drawSim($('#simB'), SIM_B, t); $('#simT').value = t; $('#simClock').textContent = t.toFixed(0) + ' s'; };
-  $('#simT').oninput = e => { t = +e.target.value; render(); };
-  $('#simPlay').onclick = () => { playing = !playing; $('#simPlay').textContent = playing ? 'Pause' : 'Play'; last = performance.now(); if (playing) requestAnimationFrame(tick); };
-  function tick(now) { if (!playing) return; t += (now - last) / 1000 * 4; last = now; if (t > max) t = 0; render(); requestAnimationFrame(tick); }
-  render();
-}
+// Karşılaştırma bölümü web/static/ikiz.js içinde (simSetup).
 
 load();
 </script>

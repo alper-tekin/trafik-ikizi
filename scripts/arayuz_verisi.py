@@ -48,14 +48,47 @@ def oynatma(plan: dict, sayim: dict, surucu: dict, klasor: str) -> dict:
     fazlar = faz_plani_surelerden(plan["sol_onde"], plan["guney_onde"], plan["ortak"], plan["ara_sokak"])
     cfg = kur(Path("sim") / klasor, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar)
     d = calistir(cfg)
-    d = d[(d.t >= OYNATMA_S[0]) & (d.t < OYNATMA_S[1]) & ((d.t * 2) % 1 == 0)]  # 2 Hz
-    d = d[np.hypot(d.u, d.w) < 120]
+    d = d[(d.t >= OYNATMA_S[0]) & (d.t < OYNATMA_S[1])]  # adım 0,5 s -> 2 Hz; arayüz ara kareleri kestirir
+    d = d[np.hypot(d.u, d.w) < 110]
     kareler = {}
     for t, g in d.groupby("t"):
-        kareler[f"{t - OYNATMA_S[0]:.1f}"] = [[a, round(u, 1), round(w, 1), round(h, 1)]
-                                             for a, u, w, h in g[["arac", "u", "w", "hiz"]].itertuples(index=False)]
-    fazlar_ozet = [{"sure": s, "durum": durum} for s, durum in fazlar]
-    return {"plan": plan, "fazlar": fazlar_ozet, "baslangic_s": OYNATMA_S[0], "kareler": kareler}
+        kareler[f"{t - OYNATMA_S[0]:.1f}"] = [
+            [a, round(u, 2), round(w, 2), round(h, 1), round(aci)]
+            for a, u, w, h, aci in g[["arac", "u", "w", "hiz", "aci"]].itertuples(index=False)]
+    # Sinyal durum dizileri (bağlantı sırasıyla), SUMO'nun okuduğu dosyadan
+    import xml.etree.ElementTree as ET
+    # faz_plani_surelerden ile aynı sıra ve aynı süfir-süre filtresi
+    adlar = [(plan["sol_onde"], "Southbound left only"), (plan["guney_onde"], "Southbound through + left"),
+             (plan["ortak"], "Lankershim, both directions"), (3, "Yellow"), (1, "All red"),
+             (plan["ara_sokak"], "Cross street"), (3, "Yellow"), (1, "All red")]
+    adlar = [ad for sure, ad in adlar if sure > 0]
+    sinyal = [{"sure": float(f.get("duration")), "durum": f.get("state"), "ad": ad}
+              for f, ad in zip(ET.parse(cfg.parent / "sinyal.add.xml").getroot().iter("phase"), adlar)]
+    return {"plan": plan, "sinyal": sinyal, "isinma_s": 120.0, "baslangic_s": OYNATMA_S[0], "kareler": kareler}
+
+
+def ag_geometrisi(ag_yolu: Path) -> dict:
+    """Arayüz çizimi için SUMO ağı: şerit şekilleri, kavşak çokgeni, şerit başına
+    sinyal bağlantıları (yön harfi ve sinyal dizisindeki sırası). Kavşak merkezli metre."""
+    import sumolib
+
+    net = sumolib.net.readNet(str(ag_yolu), withInternal=False)
+    mx, my = net.getNode("M").getCoord()
+    uw = lambda p: [round(p[1] - my, 2), round(p[0] - mx, 2)]  # noqa: E731  (x doğu, y kuzey) -> (u, w)
+    seritler = []
+    for kenar in net.getEdges():
+        for serit in kenar.getLanes():
+            linkler = []
+            for b in serit.getOutgoing():
+                if b.getTLLinkIndex() >= 0:
+                    linkler.append({"yon": b.getDirection().lower()[0], "sira": b.getTLLinkIndex()})
+            seritler.append({
+                "kenar": kenar.getID(), "giris": kenar.getID().endswith("_gir"),
+                "sira": serit.getIndex(), "genislik": serit.getWidth(),
+                "sekil": [uw(p) for p in serit.getShape()], "linkler": linkler,
+            })
+    kavsak = [uw(p) for p in net.getNode("M").getShape()]
+    return {"seritler": seritler, "kavsak": kavsak}
 
 
 def main() -> None:
@@ -113,6 +146,7 @@ def main() -> None:
     yaz("kusbakisi.json", {"fps": 5, "kareler": kareler})
     yaz("sim_mevcut.json", sim_mevcut)
     yaz("sim_onerilen.json", sim_onerilen)
+    yaz("sim_ag.json", ag_geometrisi(Path("sim/arayuz_mevcut/ag.net.xml")))
 
 
 if __name__ == "__main__":

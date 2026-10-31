@@ -29,6 +29,16 @@ app.mount("/veri", StaticFiles(directory=KOK / "veri"), name="veri")
 _kilit = threading.Lock()
 
 
+@app.middleware("http")
+async def onbellek_basligi(istek, sonraki):
+    """Sayfa ve veri dosyaları yeniden üretildiğinde tarayıcı eskisini göstermesin:
+    her istekte doğrulat (değişmediyse 304 döner). Büyük video önbellekte kalabilir."""
+    yanit = await sonraki(istek)
+    if not istek.url.path.endswith(".mp4"):
+        yanit.headers["Cache-Control"] = "no-cache"
+    return yanit
+
+
 @app.get("/")
 def ana_sayfa():
     return FileResponse(KOK / "index.html")
