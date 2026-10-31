@@ -85,7 +85,7 @@
   <h2>1 · See</h2>
   <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
-     2-second track trails. Right: the same tracked cars on a schematic map framed like the video, synced to it.
+     2-second track trails. Right: the same tracked cars on a top-down map turned to match the video, synced to it.
      The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
      recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
@@ -93,7 +93,7 @@
     <div class="card twin"><canvas id="bev"></canvas>
       <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
         <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span>
-        <span>· lanes measured from the road paint in the video</span></div>
+        <span>· lanes measured from the road paint; arrows are the turns counted per lane in the video</span></div>
     </div>
   </div>
 </section>
@@ -138,7 +138,7 @@
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
   <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
-     Drawn from the camera's own angle, so every lane sits on the painted lane in the video. The simulation network was built from the road paint in the empty-road image (per-pixel median of the video): every lane line, edge, yellow line and stop line was located in the image and converted to metres through the camera calibration. Cars with lit brake lights are stopped.</p>
+     A top-down map turned to match the video. The simulation network was built from the road paint in the empty-road image (per-pixel median of the video): lane counts, widths and stop lines were measured there and converted to metres through the camera calibration. Each lane's arrows are the turns counted for that lane in the video. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
       <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>

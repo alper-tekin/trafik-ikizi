@@ -7,7 +7,11 @@ sınırları (kenar, kesikli/düz beyaz, sarı) fotoğrafta iki enine kesitte pi
 noktasıyla verilir. Hepsi kalibrasyonla (G⁻¹) yere, kavşak merkezli metreye çevrilir ve
 geometri.py ile aynı biçimde yazılır: e, n, gelen/giden {n, merkez, genislik}, durma_m.
 
-Kullanım: python scripts/geometri_fotodan.py [--yaz]   (--yaz: data/geometri.json'un yerine geçer)
+--arti: kollar en yakın dik yöne (+ şekli) oturtulur; şerit sayısı, genişliği, yanal konumu ve
+durma çizgisi ölçüldüğü gibi kalır. Gerçek yön 'gercek_e' olarak saklanır (arayüz videodaki
+izleri + çizime bu farkla döndürür). Kollar zaten dike yakın (4°, -177°, 96°, -84°).
+
+Kullanım: python scripts/geometri_fotodan.py [--arti] [--yaz]   (--yaz: data/geometri.json'un yerine geçer)
 """
 
 import json
@@ -93,9 +97,23 @@ def olc(G):
     return {"kollar": kollar, "kaynak": "araçsız yol fotoğrafındaki boya (scripts/geometri_fotodan.py)"}, rapor
 
 
+def arti(geo: dict) -> dict:
+    """Her kolun yönünü en yakın eksene (u kuzey, w doğu) oturtur; gerisi aynı."""
+    kollar = {}
+    for k, g in geo["kollar"].items():
+        e = np.array(g["e"])
+        i = int(np.argmax(np.abs(e)))
+        dik = np.zeros(2)
+        dik[i] = np.sign(e[i])
+        kollar[k] = {**g, "e": dik.tolist(), "n": [-dik[1], dik[0]], "gercek_e": g["e"]}
+    return {**geo, "kollar": kollar, "kaynak": geo["kaynak"] + ", kollar dik (+)"}
+
+
 def main():
     G = geometri.goruntu_donusumu()
     geo, rapor = olc(G)
+    if "--arti" in sys.argv:
+        geo = arti(geo)
     print(json.dumps(rapor, indent=1, ensure_ascii=False))
     Path("data/geometri_foto.json").write_text(
         json.dumps({**geo, "kavsak": geometri.kavsak_cokgeni(geo)}, indent=2, ensure_ascii=False), encoding="utf-8")

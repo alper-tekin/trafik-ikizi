@@ -2,8 +2,9 @@
 
   - Ağ: kolların yönü, şerit sayısı/genişliği/yanal yeri, durma çizgileri ve
     kavşak alanı araçsız yol fotoğrafındaki boyadan ölçülür (scripts/geometri_fotodan.py,
-    data/geometri.json). Kavşak kare değil: kollar 4°/−177°/96°/−84°, şerit genişlikleri
-    2,5-4 m, durma çizgileri 17-22 m arasında, güney kolunda boyalı orta refüj var.
+    data/geometri.json). Kollar dik (+) kurulur (ölçülen yönler 4°/−177°/96°/−84°, dike
+    yakın); şerit sayıları, genişlikleri (2,5-3,6 m), yanal konumları ve durma çizgileri
+    (17-22 m) ölçüldüğü gibidir. Güney ve doğu kolunda orta refüj var.
   - Talep: video penceresindeki yön x hareket sayımları -> araç/saat.
   - Sinyal: döngü ve yeşil süreleri data/sinyal_plani.json'dan; sarı 3 s,
     tüm-kırmızı 1 s. Ara sokağın yeşili döngünün kalanıdır.
@@ -36,14 +37,17 @@ def _sumo_bin(ad: str) -> str:
     return str(Path(sumo.SUMO_HOME) / "bin" / ad)
 
 
-# Şerit -> hareket eşlemesi (şerit 0 = en sağ/en dış). Ölçülen şerit sayılarına göre:
-# güneye gidiş 3 düz + 2 sol cep (sol talep 510 araç/saat), kuzeye gidiş sağ cep + 3 düz +
-# bir sol, ara sokaklar sağ+düz / düz / sol+düz.
+# Şerit -> hareket eşlemesi (şerit 0 = en sağ/en dış), videodan: her şeritte durma çizgisi
+# önünde bekleyen araçların gerçekte nereye gittiği sayıldı ve yoldaki boyalı oklarla
+# karşılaştırıldı (doğu kolunda oklar sağ / düz / sol, sayımlarla aynı). Şerit başına sayımlar:
+#   K: 150 düz+32 sağ | 117 düz | 119 düz | 98 sol | 59 sol (sağ cepte boyalı sağ ok)
+#   G: 92 sağ | 120 düz | 99 düz | 70 düz | 13 sol
+#   D: 42 sağ | 9 düz | 4 sol            B: 26 düz+3 sağ | 7 düz | 34 sol
 SERIT_HAREKET = {
     "K": [("r", "s"), ("s",), ("s",), ("l",), ("l",)],
     "G": [("r",), ("s",), ("s",), ("s",), ("l",)],
-    "D": [("r", "s"), ("s",), ("s", "l")],
-    "B": [("r", "s"), ("s",), ("s", "l")],
+    "D": [("r",), ("s",), ("l",)],
+    "B": [("r", "s"), ("s",), ("l",)],
 }
 HARF_HAREKET = {"s": 1, "l": 2, "r": 3}
 

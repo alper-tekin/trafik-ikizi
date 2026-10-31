@@ -1,11 +1,11 @@
 // Kavşak çizimi: 1. bölümdeki kuşbakışı (videodaki gerçek izler) ve 4. bölümdeki
 // ikiz karşılaştırması aynı motorla çizilir.
 //
-// Çizim videonun kadrajı ve açısıyla yapılır: yerdeki her nokta (u kuzey, w doğu, metre)
-// kalibrasyon homografisiyle (AG.goruntu.G) video pikseline yansıtılır. Yollar ve şeritler,
-// araçsız yol fotoğrafındaki boyadan ölçülen geometriyle kurulan SUMO ağından (sim_ag.json)
-// gelir; böylece şeritler ve kolların kaçıklığı videodakiyle birebir örtüşür. Başka bir
-// videonun kalibrasyonuyla çizim kendiliğinden ona hizalanır.
+// Kavşak düz kuşbakışı bir + olarak çizilir (perspektif yok, ölçek her yerde aynı) ve videoyla
+// aynı yöne döndürülür: kalibrasyon homografisinden (AG.goruntu.G) kuzeyin ve doğunun görüntüdeki
+// yönü okunur. Ağ (sim_ag.json) dik kollarla kurulur; şerit sayısı, genişliği, yanal konumu ve
+// durma çizgileri yol boyasından ölçülmüştür, şerit okları videoda sayılan dönüşlerdir.
+// Videodaki izler, her kolun gerçek yönüyle + yönü arasındaki küçük açı farkı kadar döndürülür.
 //
 // Kullandığı küreseller (index.html): $, OZET, BEV, SIM_A, SIM_B, AG, Chart.
 
@@ -24,19 +24,35 @@ function phaseColor(ad) {
 }
 
 // ---------------------------------------------------------------- görünüm
-// W piksel genişliğindeki tuval için yer -> ekran (video kadrajı, tam homografi).
+const GORUS_M = 62;  // kavşak merkezinden yatayda her iki yana gösterilen mesafe (m)
+
+// W piksel genişliğindeki tuval için yer -> ekran: videonun yönüne çevrilmiş düz harita.
 function gorunum(W) {
-  const g = AG.goruntu, G = g.G, k = W / g.genislik, H = Math.round(g.yukseklik * k);
-  const P = (u, w) => {
-    const z = G[2][0] * u + G[2][1] * w + G[2][2];
-    return [(G[0][0] * u + G[0][1] * w + G[0][2]) / z * k, (G[1][0] * u + G[1][1] * w + G[1][2]) / z * k];
-  };
-  // yerel ölçek (piksel/metre), metin ve çizgi kalınlıkları için
-  const olcek = (u, w) => {
-    const [x0, y0] = P(u, w), [x1, y1] = P(u + 1, w), [x2, y2] = P(u, w + 1);
-    return (Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x0, y2 - y0)) / 2;
-  };
-  return { W, H, P, olcek };
+  const g = AG.goruntu, G = g.G, H = Math.round(W * g.yukseklik / g.genislik);
+  const V = (u, w) => { const z = G[2][0] * u + G[2][1] * w + G[2][2]; return [(G[0][0] * u + G[0][1] * w + G[0][2]) / z, (G[1][0] * u + G[1][1] * w + G[1][2]) / z]; };
+  const [x0, y0] = V(0, 0), [xn, yn] = V(1, 0), [xe, ye] = V(0, 1);
+  const a = Math.atan2(yn - y0, xn - x0), n = [Math.cos(a), Math.sin(a)];
+  // doğu, kuzeye dik iki yönden videodakine yakın olanı
+  const e0 = [-n[1], n[0]], isaret = Math.sign(e0[0] * (xe - x0) + e0[1] * (ye - y0)) || 1, e = [e0[0] * isaret, e0[1] * isaret];
+  const S = W / (2 * GORUS_M), cx = W / 2, cy = H / 2;
+  const P = (u, w) => [cx + S * (u * n[0] + w * e[0]), cy + S * (u * n[1] + w * e[1])];
+  return { W, H, P, olcek: () => S };
+}
+
+// Videodaki gerçek konum -> + ağı: noktanın bulunduğu kolun gerçek yönüyle dik yönü arasındaki
+// açı kadar merkez etrafında döndürülür (kavşak içinde, 10-20 m arası, yumuşak geçiş).
+function artiya(u, w) {
+  const r = Math.hypot(u, w);
+  if (r < 10 || !AG.olculen) return [u, w];
+  let en = null, enYakin = -2;
+  for (const g of Object.values(AG.olculen)) {
+    const ge = g.gercek_e || g.e, c = (u * ge[0] + w * ge[1]) / r;
+    if (c > enYakin) { enYakin = c; en = g; }
+  }
+  const ge = en.gercek_e || en.e;
+  const fark = (Math.atan2(en.e[1], en.e[0]) - Math.atan2(ge[1], ge[0])) * Math.min(1, (r - 10) / 10);
+  const c = Math.cos(fark), s = Math.sin(fark);
+  return [u * c - w * s, u * s + w * c];
 }
 
 function setupCanvas(cv) {
@@ -167,7 +183,7 @@ function yaziVePusula(ctx, gr) {
   ctx.font = `${fs}px system-ui`; ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
   // yol adı yolun dışında, yoldan uzağa doğru hizalı yazılır (yola taşmasın)
   const yaz = (t, kol, d) => {
-    const g = AG.olculen[kol], ic = (x, y) => x > fs && x < gr.W - fs && y > fs * 6.4 && y < gr.H - fs * 4;  // bekleme etiketlerinin şeridi dışında
+    const g = AG.olculen[kol], ic = (x, y) => x > fs && x < gr.W - fs && y > fs * 1.4 && y < gr.H - fs * 4;  // alttaki bekleme etiketlerinden uzak
     while (d > 20 && !ic(...gr.P(...yolKenari(kol, d, -1, 2)))) d -= 2;  // kadraja girene dek merkeze yaklaş
     const [x, y] = gr.P(...yolKenari(kol, d, -1, 2)), [xm] = gr.P(g.e[0] * d, g.e[1] * d);
     ctx.textAlign = Math.abs(x - xm) < fs ? 'center' : x > xm ? 'left' : 'right';
@@ -315,7 +331,7 @@ function bevStart() {
   const kareler = [];
   for (const [k, liste] of Object.entries(BEV.kareler)) {
     const m = new Map();
-    for (const [id, u, w, , h] of liste) m.set(id, [u, w, h]);
+    for (const [id, u, w, , h] of liste) m.set(id, [...artiya(u, w), h]);
     kareler[+k / 2] = m;
   }
   const yon = new Map();  // iz -> son güvenilir açı (duran araç titremesin)
