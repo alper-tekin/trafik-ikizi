@@ -145,20 +145,28 @@ function networkImage(W) {
   return c;
 }
 
+// Koyu şematik görünüm: yalnızca yolla ilgili katmanlar çizilir (çimen, ağaç, bina çizilmez;
+// zemin koyu kalır). Renkler eski şematik çizimle aynı.
 const SAHNE_RENK = {
-  cim: '#1d3622', agac: '#21402a', bina: '#3a3631', kaldirim: '#3b4148', yol: '#262b32',
-  gecit: '#cfd6dd', beyaz_cizgi: '#d8dee4', sari_cizgi: '#e3b341', ok: '#cfd6dd',
+  kaldirim: '#2b323b', yol: '#262b32', gecit: '#d0d7de55',
+  beyaz_cizgi: '#c9d1d9d9', sari_cizgi: '#e3b341', ok: '#e6edf399',
 };
-const SAHNE_SIRA = ['cim', 'agac', 'bina', 'kaldirim', 'yol', 'gecit', 'beyaz_cizgi', 'sari_cizgi', 'ok'];
+const SAHNE_SIRA = ['kaldirim', 'yol', 'gecit', 'beyaz_cizgi', 'sari_cizgi', 'ok'];
 
 function sahneCiz(ctx, gr) {
   const S = window.SAHNE, k = gr.W / S.genislik;
+  const yol = p => {
+    ctx.beginPath();
+    p.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
+    ctx.closePath();
+  };
   for (const ad of SAHNE_SIRA) {
     ctx.fillStyle = SAHNE_RENK[ad];
     for (const p of S.katmanlar[ad] || []) {
-      ctx.beginPath();
-      p.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
-      ctx.closePath(); ctx.fill();
+      yol(p); ctx.fill();
+      if (ad === 'yol') {  // yol kenarı (bordür)
+        ctx.strokeStyle = '#3a434e'; ctx.lineWidth = Math.max(1.5, gr.W / 400); ctx.stroke();
+      }
     }
   }
   // Boyası fotoğrafta görünmeyen kollarda (parlak beton) şerit ayırıcıları, o koldaki araçların

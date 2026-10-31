@@ -104,12 +104,24 @@ def main() -> None:
             if k["guven"] is None or k["guven"] >= 0.3:
                 birlesik |= k["maske"]
         ince = ad in ("beyaz_cizgi", "sari_cizgi", "ok")
+        if not ince:  # geniş yüzeyler: maske sınırındaki tırtıkları yumuşat
+            cekirdek = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+            birlesik = cv2.morphologyEx(cv2.morphologyEx(birlesik, cv2.MORPH_OPEN, cekirdek), cv2.MORPH_CLOSE, cekirdek)
         if ince:  # soluk işaretler: kontrastı artırılmış, büyütülmüş karolarda da sor
             birlesik |= karo_maskeleri(img, kavramlar[0])
             birlesik &= (cv2.dilate(yol_maskesi, np.ones((5, 5), np.uint8)) > 0).astype(np.uint8)
         if ad == "yol":
+            # Yol maskesinde gedikler var (ağaç gölgesi, refüj kenarı). Büyük bir kapatmayla
+            # doldur, ama kaldırım/çimen/bina olduğu bilinen pikselleri dışarıda bırak ki
+            # kavşak köşeleri ve kaldırımlar yola karışmasın.
+            yol_disi = np.zeros((h, w), dtype=np.uint8)
+            for kavram in ("sidewalk", "grass", "building roof"):
+                for k in maskeler(sor(kavram, url)):
+                    yol_disi |= k["maske"]
+            kapali = cv2.morphologyEx(birlesik, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (61, 61)))
+            birlesik |= kapali & (1 - yol_disi)
             yol_maskesi = birlesik.copy()
-        sahne["katmanlar"][ad] = cokgenler(birlesik, 2 if ince else 30, 0.6 if ince else 1.2)
+        sahne["katmanlar"][ad] = cokgenler(birlesik, 2 if ince else 30, 0.6 if ince else 2.0)
         sahne["ozet"][ad] = {"kayit": len(kayitlar), "kaplama": round(float(birlesik.mean()), 4),
                              "cokgen": len(sahne["katmanlar"][ad])}
         print(ad, sahne["ozet"][ad])
