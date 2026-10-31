@@ -32,7 +32,7 @@ recommendation + evidence ──► automatic verifier (re-simulates, checks eve
                                                   re-tests on 10 seeds the agent never saw)
 ```
 
-The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1 tracks, the ground-truth checks, the agent's tool calls with its verified answer, and the current and recommended plans running next to each other in the twin. Every panel is a clean top-down schematic of the simulation network, turned to match the video: the camera calibration tells which way north and east run on screen, so roads run the same way as in the video, and a different video turns the map through its own calibration. The network itself is built from measurements of the tracked cars (arm directions, lane counts and widths, stop-line positions), so the skewed west arm and the 5/3 lane asymmetry are real.
+The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1 tracks, the ground-truth checks, the agent's tool calls with its verified answer, and the current and recommended plans running next to each other in the twin. Every panel is a clean schematic of the simulation network framed like the video: the drawing uses the affine map that best fits the camera calibration around the intersection, so each road sits where it is on screen at the same angle, without perspective, and a different video lines up through its own calibration. The network itself is built from measurements of the tracked cars (arm directions, lane counts and widths, stop-line positions), so the skewed west arm and the 5/3 lane asymmetry are real.
 
 ## Every stage is checked against ground truth
 
