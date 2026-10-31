@@ -1,11 +1,18 @@
-// Karşılaştırma bölümü: kavşak ikizinin iki sinyal planıyla yan yana oynatılması.
-// Yollar, şeritler ve sinyal bağlantıları SUMO ağından (sim_ag.json) gelir; araçlar
-// 2 Hz kayıttan çizilir, aradaki konumlar doğrusal kestirimle bulunur.
-// Kullandığı küreseller (index.html): $, SIM_A, SIM_B, AG, Chart.
+// Kavşak çizimi: 1. bölümdeki kuşbakışı (videodaki gerçek izler) ve 4. bölümdeki
+// ikiz karşılaştırması aynı motorla çizilir.
+//
+// Her şey kamera görüntüsünün açısı ve kadrajıyla çizilir: yerdeki her nokta
+// (u kuzey, w doğu, metre) kalibrasyondan gelen homografiyle (AG.goruntu.G) video
+// pikseline yansıtılır. Şeritler, çizgiler, ışıklar ve arabalar yerde birer çokgen
+// olarak tanımlanır, köşeleri yansıtılır; böylece perspektif de videoyla aynıdır.
+// Başka bir videonun kalibrasyonuyla çizim kendiliğinden ona hizalanır.
+//
+// Kullandığı küreseller (index.html): $, OZET, BEV, SIM_A, SIM_B, AG, Chart.
 
 const SIG = { G: '#3fdc6a', g: '#2f9e55', y: '#f2b531', r: '#ef4444', s: '#ef4444', o: '#555' };
 const BODY = { K: '#7aa2ff', G: '#f0c674', D: '#b5e48c', B: '#ff9ecb' };
-const VIEW_M = 64;  // kavşak merkezinden her yöne gösterilen mesafe (m)
+const MOVE_RENK = { 1: '#e6edf3', 2: '#f0b429', 3: '#39c5cf', 0: '#6e7681' };
+const SERIT_KIRP_M = 140;  // şeritler bu uzaklıkta kesilir (daha ötesi ufkun arkasına düşebilir)
 
 function phaseColor(ad) {
   if (ad.startsWith('Southbound left')) return '#f0b429';
@@ -16,6 +23,218 @@ function phaseColor(ad) {
   return '#444c56';
 }
 
+// ---------------------------------------------------------------- görünüm
+// W piksel genişliğindeki tuval için yer -> ekran yansıtması.
+function gorunum(W) {
+  const g = AG.goruntu, G = g.G, k = W / g.genislik, H = Math.round(g.yukseklik * k);
+  const P = (u, w) => {
+    const z = G[2][0] * u + G[2][1] * w + G[2][2];
+    return [(G[0][0] * u + G[0][1] * w + G[0][2]) / z * k, (G[1][0] * u + G[1][1] * w + G[1][2]) / z * k];
+  };
+  // yerel ölçek (piksel/metre), metin ve çizgi kalınlıkları için
+  const olcek = (u, w) => {
+    const [x0, y0] = P(u, w), [x1, y1] = P(u + 1, w), [x2, y2] = P(u, w + 1);
+    return (Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x0, y2 - y0)) / 2;
+  };
+  return { W, H, P, olcek };
+}
+
+function setupCanvas(cv) {
+  const dpr = window.devicePixelRatio || 1, W = Math.round(cv.clientWidth * dpr);
+  const H = Math.round(W * AG.goruntu.yukseklik / AG.goruntu.genislik);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  return { ctx: cv.getContext('2d'), gr: gorunum(W) };
+}
+
+// Yerdeki çokgeni (metre köşeleri) yansıtıp doldur.
+function yerCokgen(ctx, gr, kose, renk) {
+  ctx.beginPath();
+  kose.forEach(([u, w], i) => { const [x, y] = gr.P(u, w); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
+  ctx.closePath(); ctx.fillStyle = renk; ctx.fill();
+}
+
+// a'dan b'ye uzanan, genislik metre enli bir yer şeridi.
+function bant(ctx, gr, a, b, genislik, renk) {
+  const du = b[0] - a[0], dw = b[1] - a[1], L = Math.hypot(du, dw) || 1, h = genislik / 2;
+  const nu = -dw / L * h, nw = du / L * h;
+  yerCokgen(ctx, gr, [[a[0] + nu, a[1] + nw], [b[0] + nu, b[1] + nw], [b[0] - nu, b[1] - nw], [a[0] - nu, a[1] - nw]], renk);
+}
+
+// Kesikli yer çizgisi.
+function kesikli(ctx, gr, a, b, genislik, renk, dolu = 3, bos = 4) {
+  const du = b[0] - a[0], dw = b[1] - a[1], L = Math.hypot(du, dw);
+  for (let s = 0; s < L; s += dolu + bos) {
+    const e = Math.min(L, s + dolu);
+    bant(ctx, gr, [a[0] + du * s / L, a[1] + dw * s / L], [a[0] + du * e / L, a[1] + dw * e / L], genislik, renk);
+  }
+}
+
+// Şerit şeklini merkeze SERIT_KIRP_M'den yakın kısma kes; [kavşak ucu, uzak uç].
+function kirpilmis(l) {
+  const s = l.sekil, a = s[0], b = s[s.length - 1];
+  const yakin = Math.hypot(...a) < Math.hypot(...b) ? a : b, uzak = yakin === a ? b : a;
+  const du = uzak[0] - yakin[0], dw = uzak[1] - yakin[1], L = Math.hypot(du, dw);
+  const m = Math.min(L, SERIT_KIRP_M - Math.hypot(...yakin));
+  return [yakin, [yakin[0] + du / L * m, yakin[1] + dw / L * m]];
+}
+
+function laneDir(sh) {
+  const a = sh[0], b = sh[sh.length - 1], du = b[0] - a[0], dw = b[1] - a[1], L = Math.hypot(du, dw);
+  return [du / L, dw / L];
+}
+
+// ---------------------------------------------------------------- ağ
+// Ağ her kare için aynı; her tuval genişliği için bir kez ayrı tuvale çizilir.
+const netCache = new Map();
+function networkImage(W) {
+  if (netCache.has(W)) return netCache.get(W);
+  const gr = gorunum(W), c = document.createElement('canvas');
+  c.width = gr.W; c.height = gr.H;
+  const ctx = c.getContext('2d'), lanes = AG.seritler;
+  ctx.fillStyle = '#0d1410'; ctx.fillRect(0, 0, gr.W, gr.H);
+
+  for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 1.8, '#3a434e'); }  // kaldırım
+  for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 0.05, '#262b32'); }  // asfalt
+  yerCokgen(ctx, gr, AG.kavsak, '#262b32');
+
+  const byEdge = {};
+  for (const l of lanes) (byEdge[l.kenar] = byEdge[l.kenar] || []).push(l);
+  for (const ls of Object.values(byEdge)) {  // şerit ayırıcıları
+    ls.sort((a, b) => a.sira - b.sira);
+    for (let i = 0; i + 1 < ls.length; i++) {
+      const [a1, b1] = kirpilmis(ls[i]), [a2, b2] = kirpilmis(ls[i + 1]);
+      kesikli(ctx, gr, [(a1[0] + a2[0]) / 2, (a1[1] + a2[1]) / 2], [(b1[0] + b2[0]) / 2, (b1[1] + b2[1]) / 2], 0.15, '#c9d1d999');
+    }
+  }
+  for (const kol of ['K', 'G', 'D', 'B']) {  // giriş ile çıkış arasında çift sarı çizgi
+    const gi = byEdge[kol + '_gir'];
+    if (!gi || !byEdge[kol + '_cik']) continue;
+    const sol = gi[gi.length - 1], [a, b] = kirpilmis(sol), [du, dw] = laneDir(sol.sekil);
+    const nu = dw, nw = -du;  // giriş yönünün solu
+    for (const d of [sol.genislik / 2 + 0.12, sol.genislik / 2 + 0.32]) {
+      bant(ctx, gr, [a[0] + nu * d, a[1] + nw * d], [b[0] + nu * d, b[1] + nw * d], 0.12, '#e3b341');
+    }
+  }
+  for (const l of lanes) {  // yaya geçitleri, durma çizgileri, şerit okları
+    const [du, dw] = laneDir(l.sekil), nu = -dw, nw = du;
+    const uc = l.giris ? l.sekil[l.sekil.length - 1] : l.sekil[0];
+    const ic = l.giris ? 1 : -1;  // kavşağa doğru yön işareti
+    for (let s = -0.4; s <= 0.4; s += 0.27) {
+      const cu = uc[0] + du * ic * 0 + nu * s * l.genislik, cw = uc[1] + dw * ic * 0 + nw * s * l.genislik;
+      const g0 = l.giris ? 1 : -5, g1 = g0 + 4;
+      bant(ctx, gr, [cu + du * g0, cw + dw * g0], [cu + du * g1, cw + dw * g1], l.genislik * 0.14, '#d0d7de55');
+    }
+    if (!l.giris) continue;
+    const h = l.genislik / 2;
+    bant(ctx, gr, [uc[0] - du * 0.3 + nu * h, uc[1] - dw * 0.3 + nw * h], [uc[0] - du * 0.3 - nu * h, uc[1] - dw * 0.3 - nw * h], 0.45, '#e6edf3');
+    yerOklari(ctx, gr, [uc[0] - du * 9, uc[1] - dw * 9], [du, dw], l.linkler.map(x => x.yon));
+  }
+  yaziVePusula(ctx, gr);
+  netCache.set(W, c);
+  return c;
+}
+
+// Şerit okları yerde çizilir (perspektifle birlikte döner).
+function yerOklari(ctx, gr, merkez, [du, dw], dirs) {
+  const nu = -dw, nw = du, at = (ileri, yan) => [merkez[0] + du * ileri + nu * yan, merkez[1] + dw * ileri + nw * yan];
+  const ok = (a, b) => {
+    bant(ctx, gr, a, b, 0.25, '#e6edf399');
+    const yu = b[0] - a[0], yw = b[1] - a[1], L = Math.hypot(yu, yw), eu = yu / L, ew = yw / L;
+    for (const s of [-1, 1]) bant(ctx, gr, b, [b[0] - eu * 0.8 - ew * s * 0.5, b[1] - ew * 0.8 + eu * s * 0.5], 0.22, '#e6edf399');
+  };
+  bant(ctx, gr, at(-2.4, 0), at(0, 0), 0.25, '#e6edf399');
+  for (const d of new Set(dirs)) {
+    if (d === 's') ok(at(0, 0), at(1.8, 0));
+    else if (d === 'l') ok(at(0, 0), at(0.3, -1.4));
+    else if (d === 'r') ok(at(0, 0), at(0.3, 1.4));
+  }
+}
+
+function yaziVePusula(ctx, gr) {
+  const fs = Math.round(gr.W / 46);
+  ctx.font = `${fs}px system-ui`; ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
+  const yaz = (t, u, w) => { const [x, y] = gr.P(u, w); if (x > 0 && x < gr.W && y > 0 && y < gr.H) ctx.fillText(t, x, y); };
+  yaz('Lankershim Blvd', 46, -24);
+  yaz('Universal Hollywood Dr', 16, -30);
+  // pusula: kuzeyin ekrandaki yönü
+  const [x0, y0] = gr.P(0, 0), [x1, y1] = gr.P(10, 0), a = Math.atan2(y1 - y0, x1 - x0);
+  const cx = gr.W - fs * 4.2, cy = fs * 3.2, r = fs * 1.3;  // "N" harfi tuvalin içinde kalsın
+  ctx.strokeStyle = '#8b949e'; ctx.lineWidth = Math.max(1, fs / 9);
+  ctx.beginPath(); ctx.moveTo(cx - Math.cos(a) * r, cy - Math.sin(a) * r); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  ctx.lineTo(cx + Math.cos(a + 2.6) * r * 0.5 + Math.cos(a) * r * 0.5, cy + Math.sin(a + 2.6) * r * 0.5 + Math.sin(a) * r * 0.5);
+  ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+  ctx.lineTo(cx + Math.cos(a - 2.6) * r * 0.5 + Math.cos(a) * r * 0.5, cy + Math.sin(a - 2.6) * r * 0.5 + Math.sin(a) * r * 0.5);
+  ctx.stroke();
+  ctx.fillText('N', cx + Math.cos(a) * r * 1.9, cy + Math.sin(a) * r * 1.9 + fs * 0.35);
+  ctx.textAlign = 'start';
+}
+
+// ---------------------------------------------------------------- ışıklar ve araçlar
+function drawSignals(ctx, gr, state) {
+  for (const l of AG.seritler) {
+    if (!l.giris || !l.linkler.length) continue;
+    const [du, dw] = laneDir(l.sekil), uc = l.sekil[l.sekil.length - 1], nu = -dw, nw = du;
+    const ana = l.linkler.find(k => k.yon !== 'r') || l.linkler[0], c = state[ana.sira] || 'o';
+    const h = l.genislik * 0.42, m = [uc[0] + du * 0.8, uc[1] + dw * 0.8];
+    ctx.save(); ctx.shadowColor = SIG[c]; ctx.shadowBlur = (c === 'G' || c === 'y') ? 12 : 4;
+    bant(ctx, gr, [m[0] + nu * h, m[1] + nw * h], [m[0] - nu * h, m[1] - nw * h], 0.9, SIG[c]);
+    ctx.restore();
+  }
+}
+
+// v: [id, u, w, hız, açı]. onTampon: konum ön tampon mu (SUMO) yoksa aracın ortası mı (video izi).
+function drawCar(ctx, gr, v, renk, onTampon = true) {
+  const [id, u, w, hiz, aciDer] = v, a = aciDer * Math.PI / 180;  // 0 = kuzey, saat yönünde
+  const fu = Math.cos(a), fw = Math.sin(a), su = -fw, sw = fu, boy = 4.6, en = 1.9;
+  const geri = onTampon ? boy / 2 : 0, cu = u - fu * geri, cw = w - fw * geri;
+  // aracın kendi ekseninde (ileri, yan) -> yer
+  const p = (i, y) => [cu + fu * i + su * y, cw + fw * i + sw * y];
+  const kutu = (i0, i1, y0, y1) => [p(i0, y0), p(i1, y0), p(i1, y1), p(i0, y1)];
+  ctx.save(); ctx.translate(1, 1.5); yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), '#00000070'); ctx.restore();
+  yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), renk || BODY[String(id)[0]] || '#c9d1d9');
+  yerCokgen(ctx, gr, kutu(boy * 0.06, boy * 0.24, -en * 0.36, en * 0.36), '#0d1117cc');     // ön cam
+  yerCokgen(ctx, gr, kutu(-boy * 0.36, -boy * 0.24, -en * 0.34, en * 0.34), '#0d111788');  // arka cam
+  if (hiz < 0.5) {  // duruyor: fren lambaları
+    ctx.save(); ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = 10;
+    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.15, -boy / 2 + 0.25, -en * 0.46, -en * 0.2), '#ff4d4d');
+    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.15, -boy / 2 + 0.25, en * 0.2, en * 0.46), '#ff4d4d');
+    ctx.restore();
+  }
+}
+
+// Her kolun gelen şeritlerinin yanına o kolun ortalama beklemesi (10 tohum, tüm simülasyon).
+// Kol yönü (e) ve gelen şeritlerin tarafı (yan): etiket kolun ekseninden 'yan' kadar
+// açıkta, kavşaktan uzaktan başlayıp kadrajın içine girene kadar yaklaştırılarak konur.
+const ARM_LABEL = { K: { e: [1, 0], yan: [0, -18] }, G: { e: [-1, 0], yan: [0, 20] },
+                    D: { e: [0, 1], yan: [24, 0] }, B: { e: [0, -1], yan: [-24, 0] } };
+const KOL_ADI_KISA = { K: 'from north', G: 'from south', D: 'from east', B: 'from west' };
+function armLabels(ctx, gr, bekleme) {
+  const fs = Math.round(gr.W / 36), yariG = fs * 3.6, yariY = fs * 1.5;
+  ctx.textAlign = 'center';
+  for (const [kol, s] of Object.entries(bekleme)) {
+    const { e, yan } = ARM_LABEL[kol];
+    let x, y;
+    for (let d = 60; d >= 18; d -= 2) {
+      [x, y] = gr.P(e[0] * d + yan[0], e[1] * d + yan[1]);
+      if (x > yariG && x < gr.W - yariG && y > yariY && y < gr.H - yariY) break;
+    }
+    x = Math.min(Math.max(x, yariG), gr.W - yariG); y = Math.min(Math.max(y, yariY), gr.H - yariY);
+    ctx.fillStyle = '#0d1117e0'; roundRect(ctx, x - yariG, y - fs * 1.35, yariG * 2, fs * 2.55, fs * 0.4); ctx.fill();
+    ctx.fillStyle = '#e6edf3'; ctx.font = `600 ${fs}px system-ui`; ctx.fillText(`${s.toFixed(1)} s`, x, y);
+    ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(fs * 0.72)}px system-ui`;
+    ctx.fillText(`avg wait ${KOL_ADI_KISA[kol]}`, x, y + fs * 0.95);
+  }
+  ctx.textAlign = 'start';
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+// ---------------------------------------------------------------- ikiz oynatma verisi
 function cycleOf(sim) { return sim.sinyal.reduce((a, f) => a + f.sure, 0); }
 
 // SUMO döngüsü simülasyon saniyesi 0'da başlar; kayıt ısınmadan ve pencere başından sonra.
@@ -37,7 +256,7 @@ function frameMap(sim) {
   return sim._fr;
 }
 
-// v: [id, u, w, hız, açı]
+// v: [id, u, w, hız, açı]; 2 Hz kareler arasında doğrusal kestirim
 function vehiclesAt(sim, t) {
   const fr = frameMap(sim), i = Math.min(Math.floor(t * 2), fr.length - 1);
   const a = fr[i], b = fr[Math.min(i + 1, fr.length - 1)], f = Math.min(1, t * 2 - i), out = [];
@@ -50,169 +269,20 @@ function vehiclesAt(sim, t) {
   return out;
 }
 
-function setupCanvas(cv) {
-  const dpr = window.devicePixelRatio || 1, px = Math.round(cv.clientWidth * dpr);
-  if (cv.width !== px) { cv.width = px; cv.height = px; }
-  return { ctx: cv.getContext('2d'), size: px, k: px / cv.clientWidth };
-}
-
-function laneDir(sh) {
-  const a = sh[0], b = sh[sh.length - 1], du = b[0] - a[0], dw = b[1] - a[1], L = Math.hypot(du, dw);
-  return [du / L, dw / L];
-}
-
-function polyline(ctx, P, pts, width, color, dash) {
-  ctx.beginPath();
-  pts.forEach(([u, w], i) => { const [x, y] = P(u, w); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-  ctx.lineWidth = width; ctx.strokeStyle = color; ctx.setLineDash(dash || []); ctx.stroke(); ctx.setLineDash([]);
-}
-
-// Ağ her plan ve her kare için aynı; bir kez ayrı bir tuvale çizilip kopyalanır.
-// Kuşbakışı ve iki ikiz tuvali farklı boyutta olabilir; her boyut için ayrı önbellek.
-const netCache = new Map();
-function networkImage(size) {
-  if (netCache.has(size)) return netCache.get(size);
-  const c = document.createElement('canvas'); c.width = c.height = size;
-  const ctx = c.getContext('2d'), S = size / (2 * VIEW_M), P = (u, w) => [size / 2 + w * S, size / 2 - u * S];
-  ctx.fillStyle = '#0d1410'; ctx.fillRect(0, 0, size, size);
-  const lanes = AG.seritler;
-  ctx.lineCap = 'butt';
-  for (const l of lanes) polyline(ctx, P, l.sekil, (l.genislik + 1.8) * S, '#3a434e');  // kaldırım
-  for (const l of lanes) polyline(ctx, P, l.sekil, l.genislik * S, '#262b32');          // asfalt
-  ctx.beginPath();
-  AG.kavsak.forEach(([u, w], i) => { const [x, y] = P(u, w); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); });
-  ctx.closePath(); ctx.fillStyle = '#262b32'; ctx.fill();
-
-  // şerit ayırıcıları
-  const byEdge = {};
-  for (const l of lanes) (byEdge[l.kenar] = byEdge[l.kenar] || []).push(l);
-  for (const ls of Object.values(byEdge)) {
-    ls.sort((a, b) => a.sira - b.sira);
-    for (let i = 0; i + 1 < ls.length; i++) {
-      const a = ls[i].sekil, b = ls[i + 1].sekil;
-      polyline(ctx, P, a.map((p, j) => [(p[0] + b[j][0]) / 2, (p[1] + b[j][1]) / 2]),
-        Math.max(1, 0.15 * S), '#c9d1d999', [2 * S, 2.5 * S]);
-    }
-  }
-  // giriş ve çıkış arasındaki çift sarı çizgi
-  for (const kol of ['K', 'G', 'D', 'B']) {
-    const gi = byEdge[kol + '_gir'], ci = byEdge[kol + '_cik'];
-    if (!gi || !ci) continue;
-    const a = gi[gi.length - 1].sekil, b = ci[ci.length - 1].sekil;
-    const ga = laneDir(a), off = gi[gi.length - 1].genislik / 2;
-    const n = [ga[1], -ga[0]];  // giriş yönünün solu
-    for (const d of [0.12, 0.32]) {
-      polyline(ctx, P, a.map(p => [p[0] + n[0] * (off + d), p[1] + n[1] * (off + d)]), Math.max(1, 0.12 * S), '#e3b341');
-    }
-  }
-  // yaya geçitleri, durma çizgileri, şerit okları
-  for (const l of lanes) {
-    const [du, dw] = laneDir(l.sekil), nu = -dw, nw = du;
-    const uc = l.giris ? l.sekil[l.sekil.length - 1] : l.sekil[0];
-    const bas = l.giris ? 1.0 : -5.0;  // geçit kavşak tarafında, 4 m genişlikte
-    for (let k = -1; k <= 1; k += 2) {
-      const cu = uc[0] + du * (bas + 2) + nu * k * l.genislik / 4, cw = uc[1] + dw * (bas + 2) + nw * k * l.genislik / 4;
-      polyline(ctx, P, [[cu - du * 2, cw - dw * 2], [cu + du * 2, cw + dw * 2]], l.genislik / 2 * S * 0.55, '#d0d7de50');
-    }
-    if (!l.giris) continue;
-    const h = l.genislik / 2;
-    polyline(ctx, P, [[uc[0] - du * 0.3 + nu * h, uc[1] - dw * 0.3 + nw * h], [uc[0] - du * 0.3 - nu * h, uc[1] - dw * 0.3 - nw * h]],
-      0.45 * S, '#e6edf3');
-    drawArrows(ctx, P(uc[0] - du * 9, uc[1] - dw * 9), Math.atan2(-du, dw), l.linkler.map(x => x.yon), S);
-  }
-  ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(size / 40)}px system-ui`;
-  ctx.fillText('N ↑', size - size / 14, size / 22);
-  ctx.fillText('Lankershim Blvd', size / 2 + 26 * S, size / 22);
-  ctx.fillText('Universal Hollywood Dr', size / 40, size / 2 - 16 * S);
-  netCache.set(size, c);
-  return c;
-}
-
-function drawArrows(ctx, [x, y], ang, dirs, S) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
-  ctx.strokeStyle = '#e6edf399'; ctx.lineWidth = Math.max(1, 0.25 * S); ctx.lineCap = 'round';
-  const L = 2.2 * S, h = 0.7 * S;
-  ctx.beginPath(); ctx.moveTo(-L, 0); ctx.lineTo(0, 0); ctx.stroke();
-  for (const d of new Set(dirs)) {
-    const [ex, ey] = d === 's' ? [L * 0.8, 0] : d === 'l' ? [0, -L * 0.7] : [0, L * 0.7];
-    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(ex, ey); ctx.stroke();
-    const a = Math.atan2(ey, ex);
-    ctx.beginPath();
-    ctx.moveTo(ex - h * Math.cos(a - 0.5), ey - h * Math.sin(a - 0.5)); ctx.lineTo(ex, ey);
-    ctx.lineTo(ex - h * Math.cos(a + 0.5), ey - h * Math.sin(a + 0.5)); ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawSignals(ctx, P, S, state) {
-  for (const l of AG.seritler) {
-    if (!l.giris || !l.linkler.length) continue;
-    const [du, dw] = laneDir(l.sekil), uc = l.sekil[l.sekil.length - 1];
-    const [x, y] = P(uc[0] + du * 0.9, uc[1] + dw * 0.9);
-    const ana = l.linkler.find(k => k.yon !== 'r') || l.linkler[0], c = state[ana.sira] || 'o';
-    const w = l.genislik * S;
-    ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(-du, dw));
-    ctx.fillStyle = '#0b0e13'; ctx.fillRect(-0.5 * S, -w * 0.42, 1.0 * S, w * 0.84);
-    ctx.shadowColor = SIG[c]; ctx.shadowBlur = (c === 'G' || c === 'y') ? 12 : 4;
-    ctx.fillStyle = SIG[c]; ctx.fillRect(-0.32 * S, -w * 0.32, 0.64 * S, w * 0.64);
-    ctx.restore();
-  }
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath(); ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
-}
-
-// v: [id, u, w, hız, açı]. onTampon: konum ön tampon mu (SUMO) yoksa aracın ortası mı (video izi).
-function drawCar(ctx, P, S, v, renk, onTampon = true) {
-  const [id, u, w, hiz, aciDer] = v, a = aciDer * Math.PI / 180;  // 0 = kuzey, saat yönünde
-  const fu = Math.cos(a), fw = Math.sin(a), boy = 4.6, en = 1.9, geri = onTampon ? boy / 2 : 0;
-  const [x, y] = P(u - fu * geri, w - fw * geri);
-  const l = boy * S, wd = en * S;
-  ctx.save(); ctx.translate(x, y); ctx.rotate(a - Math.PI / 2);
-  ctx.fillStyle = '#00000070'; ctx.fillRect(-l / 2 + 1, -wd / 2 + 1.5, l, wd);
-  ctx.fillStyle = renk || BODY[String(id)[0]] || '#c9d1d9'; roundRect(ctx, -l / 2, -wd / 2, l, wd, wd * 0.32); ctx.fill();
-  ctx.fillStyle = '#0d1117cc'; ctx.fillRect(l * 0.06, -wd * 0.36, l * 0.17, wd * 0.72);   // ön cam
-  ctx.fillStyle = '#0d111788'; ctx.fillRect(-l * 0.36, -wd * 0.34, l * 0.12, wd * 0.68);  // arka cam
-  if (hiz < 0.5) {  // duruyor: fren lambaları
-    ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = 10; ctx.fillStyle = '#ff4d4d';
-    ctx.fillRect(-l / 2 - 0.6, -wd * 0.46, Math.max(1.5, 0.35 * S), wd * 0.26);
-    ctx.fillRect(-l / 2 - 0.6, wd * 0.2, Math.max(1.5, 0.35 * S), wd * 0.26);
-  }
-  ctx.restore();
-}
-
 function stoppedNear(vs) { return vs.filter(v => v[3] < 0.5 && Math.hypot(v[1], v[2]) < 75).length; }
 
 function drawTwin(cv, sim, t) {
-  const { ctx, size } = setupCanvas(cv), S = size / (2 * VIEW_M), P = (u, w) => [size / 2 + w * S, size / 2 - u * S];
-  ctx.drawImage(networkImage(size), 0, 0);
+  const { ctx, gr } = setupCanvas(cv);
+  ctx.drawImage(networkImage(gr.W), 0, 0);
   const ph = phaseAt(sim, t);
-  drawSignals(ctx, P, S, ph.f.durum);
+  drawSignals(ctx, gr, ph.f.durum);
   const vs = vehiclesAt(sim, t);
-  for (const v of vs) drawCar(ctx, P, S, v);
-  if (sim._bekleme) armLabels(ctx, P, size, sim._bekleme);
+  for (const v of vs) drawCar(ctx, gr, v);
+  if (sim._bekleme) armLabels(ctx, gr, sim._bekleme);
   return { ph, stopped: stoppedNear(vs) };
 }
 
-// Her kolun yanına o kolun ortalama beklemesi (10 tohum, tüm simülasyon).
-const ARM_LABEL_POS = { K: [44, 28], G: [-44, -33], D: [24, 44], B: [-24, -44] };  // yolun dışında, çimenlikte
-function armLabels(ctx, P, size, bekleme) {
-  const fs = Math.round(size / 34);
-  ctx.textAlign = 'center';
-  for (const [kol, s] of Object.entries(bekleme)) {
-    const [x, y] = P(...ARM_LABEL_POS[kol]);
-    ctx.fillStyle = '#0d1117cc'; roundRect(ctx, x - fs * 3.4, y - fs * 1.35, fs * 6.8, fs * 2.5, fs * 0.4); ctx.fill();
-    ctx.fillStyle = '#e6edf3'; ctx.font = `600 ${fs}px system-ui`; ctx.fillText(`${s.toFixed(1)} s`, x, y);
-    ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(fs * 0.75)}px system-ui`; ctx.fillText('avg wait', x, y + fs * 0.95);
-  }
-  ctx.textAlign = 'start';
-}
-
-// --- 1. bölüm: videodaki gerçek izler, ikizle aynı çizimle ---
-const MOVE_RENK = { 1: '#e6edf3', 2: '#f0b429', 3: '#39c5cf', 0: '#6e7681' };
+// ---------------------------------------------------------------- 1. bölüm: videodaki gerçek izler
 function bevStart() {
   const cv = $('#bev'), video = $('#video');
   // BEV.kareler: 10 fps kare no (çift) -> [[iz, u, w, yön, hareket], ...]; 5 fps
@@ -227,36 +297,39 @@ function bevStart() {
   const faz0 = OZET.sinyal.faz0_video_s, solBas = OZET.sinyal.bizim.guneye_sol.baslangic_s;
 
   function aracDurumu(i, id) {
-    const p = kareler[i]?.get(id); if (!p) return null;
-    const ileri = kareler[i + 2]?.get(id) || kareler[i + 1]?.get(id), geri = kareler[i - 2]?.get(id) || kareler[i - 1]?.get(id);
-    const a = geri || p, b = ileri || p, adim = ((ileri ? (kareler[i + 2]?.get(id) ? 2 : 1) : 0) + (geri ? (kareler[i - 2]?.get(id) ? 2 : 1) : 0)) || 1;
-    const du = b[0] - a[0], dw = b[1] - a[1], yol = Math.hypot(du, dw), hiz = yol / (adim * 0.2);
+    const p = kareler[i]?.get(id);
+    if (!p) return null;
+    const ileri = kareler[i + 2]?.get(id) || kareler[i + 1]?.get(id) || p;
+    const geri = kareler[i - 2]?.get(id) || kareler[i - 1]?.get(id) || p;
+    const du = ileri[0] - geri[0], dw = ileri[1] - geri[1], yol = Math.hypot(du, dw);
     if (yol > 0.6) yon.set(id, Math.atan2(dw, du) * 180 / Math.PI);
-    return { u: p[0], w: p[1], h: p[2], hiz, aci: yon.get(id) ?? (Math.abs(p[1]) > Math.abs(p[0]) ? (p[1] > 0 ? 270 : 90) : (p[0] > 0 ? 180 : 0)) };
+    const varsayilan = Math.abs(p[1]) > Math.abs(p[0]) ? (p[1] > 0 ? 270 : 90) : (p[0] > 0 ? 180 : 0);
+    return { u: p[0], w: p[1], h: p[2], hiz: yol / 0.8, aci: yon.get(id) ?? varsayilan };
   }
 
   function draw() {
     const t = video.currentTime, f = t * 5, i = Math.floor(f), k = f - i;
-    const { ctx, size } = setupCanvas(cv), S = size / (2 * VIEW_M), P = (u, w) => [size / 2 + w * S, size / 2 - u * S];
-    ctx.drawImage(networkImage(size), 0, 0);
+    const { ctx, gr } = setupCanvas(cv);
+    ctx.drawImage(networkImage(gr.W), 0, 0);
     // videodan çıkarılan sinyal planı: SUMO döngüsü önden-sol fazıyla başlar
     let x = (((t - faz0 - solBas) % C) + C) % C, faz = sinyal[0];
     for (const s of sinyal) { if (x < s.sure) { faz = s; break; } x -= s.sure; }
-    drawSignals(ctx, P, S, faz.durum);
+    drawSignals(ctx, gr, faz.durum);
     const simdi = kareler[i] || new Map();
     for (const id of simdi.keys()) {
-      const a = aracDurumu(i, id); if (!a) continue;
-      const b = aracDurumu(i + 1, id) || a;
-      const da = ((b.aci - a.aci + 540) % 360) - 180;
-      drawCar(ctx, P, S, [id, a.u + (b.u - a.u) * k, a.w + (b.w - a.w) * k, a.hiz, a.aci + da * k], MOVE_RENK[a.h], false);
+      const a = aracDurumu(i, id);
+      if (!a) continue;
+      const b = aracDurumu(i + 1, id) || a, da = ((b.aci - a.aci + 540) % 360) - 180;
+      drawCar(ctx, gr, [id, a.u + (b.u - a.u) * k, a.w + (b.w - a.w) * k, a.hiz, a.aci + da * k], MOVE_RENK[a.h], false);
     }
-    ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(size / 42)}px system-ui`;
-    ctx.fillText(`${simdi.size} tracked · ${faz.ad} · t = ${t.toFixed(1)} s`, size / 40, size - size / 40);
+    ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(gr.W / 46)}px system-ui`;
+    ctx.fillText(`${simdi.size} tracked · ${faz.ad} · t = ${t.toFixed(1)} s`, gr.W / 40, gr.H - gr.W / 40);
     requestAnimationFrame(draw);
   }
   draw();
 }
 
+// ---------------------------------------------------------------- 4. bölüm: plan karşılaştırması
 function phaseBar(el, sim) {
   const C = cycleOf(sim);
   el.innerHTML = sim.sinyal.map(f =>
@@ -266,7 +339,8 @@ function phaseBar(el, sim) {
 function simSetup() {
   $('#simAh').textContent = 'Current plan (from video)';
   $('#simBh').textContent = 'Recommended by the agent';
-  const plan10 = OZET.bekleme.planlar_10_tohum, kolKodu = { 'from north (southbound)': 'K', 'from south (northbound)': 'G', 'from east': 'D', 'from west': 'B' };
+  const plan10 = OZET.bekleme.planlar_10_tohum;
+  const kolKodu = { 'from north (southbound)': 'K', 'from south (northbound)': 'G', 'from east': 'D', 'from west': 'B' };
   SIM_A._bekleme = Object.fromEntries(Object.entries(plan10.mevcut.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
   SIM_B._bekleme = Object.fromEntries(Object.entries(plan10.onerilen.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
   for (const [k, sim] of [['A', SIM_A], ['B', SIM_B]]) {
@@ -334,6 +408,6 @@ function simSetup() {
     if (t > max) t = 0;
     render(); requestAnimationFrame(tick);
   }
-  window.addEventListener("resize", () => { netCache.clear(); render(); });
+  window.addEventListener('resize', () => { netCache.clear(); render(); });
   render();
 }

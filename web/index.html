@@ -57,7 +57,7 @@
   a.clip { color: var(--accent); cursor: pointer; text-decoration: underline; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
-  .twin canvas { aspect-ratio: 1 / 1; background: #0d1410; }
+  .twin canvas { aspect-ratio: 4 / 3; background: #0d1410; }  /* videoyla aynı kadraj */
   .twinhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   .twinhead h4 { margin: 0; }
   .phasebar { display: flex; height: 8px; border-radius: 4px; margin-bottom: 8px; position: relative; }
@@ -85,7 +85,7 @@
   <h2>1 · See</h2>
   <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
-     2-second track trails. Right: the same tracked cars on the ground, north up, synced to the video.
+     2-second track trails. Right: the same tracked cars drawn on the ground from the same camera angle, synced to the video.
      The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
      recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
@@ -138,7 +138,7 @@
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
   <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
-     Lanes, turn bays and signal links come straight from the simulation network. Cars with lit brake lights are stopped.</p>
+     Drawn from the same camera angle as the video. Lanes, turn bays and signal links come straight from the simulation network. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
       <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>

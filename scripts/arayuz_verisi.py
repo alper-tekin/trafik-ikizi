@@ -88,7 +88,26 @@ def ag_geometrisi(ag_yolu: Path) -> dict:
                 "sekil": [uw(p) for p in serit.getShape()], "linkler": linkler,
             })
     kavsak = [uw(p) for p in net.getNode("M").getShape()]
-    return {"seritler": seritler, "kavsak": kavsak}
+    return {"seritler": seritler, "kavsak": kavsak, "goruntu": goruntu_donusumu()}
+
+
+def goruntu_donusumu() -> dict:
+    """Kavşak merkezli metre (u kuzey, w doğu) -> video pikseli homografisi.
+
+    Kamera kalibrasyonundan gelir; arayüz bütün çizimleri bununla yapar, böylece
+    kuşbakışı ve ikiz animasyonları videoyla aynı açı ve kadrajda görünür.
+    Başka bir video için kendi kalibrasyonuyla otomatik olarak hizalanır."""
+    import cv2  # noqa: F401  (kalibrasyon OpenCV homografisi)
+
+    from trafik.akis import DOGU, KUZEY, MERKEZ
+
+    H_px2saha = np.load("data/kalibrasyon_kamera2.npy")
+    T = np.array([[KUZEY[0] / olcum.FT, DOGU[0] / olcum.FT, MERKEZ[0]],
+                  [KUZEY[1] / olcum.FT, DOGU[1] / olcum.FT, MERKEZ[1]],
+                  [0.0, 0.0, 1.0]])
+    G = np.linalg.inv(H_px2saha) @ T
+    G /= G[2, 2]
+    return {"G": G.round(8).tolist(), "genislik": 640, "yukseklik": 480}
 
 
 def main() -> None:
