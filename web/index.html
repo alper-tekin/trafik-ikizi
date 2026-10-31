@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traffic Twin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0e1116; --panel: #161b22; --line: #2a313c; --text: #e6edf3; --muted: #8b949e;
+    --accent: #58a6ff; --good: #3fb950; --warn: #d29922; --bad: #f85149;
+    --thru: #e6edf3; --left: #f0b429; --right: #39c5cf; --unk: #6e7681;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, Segoe UI, sans-serif; }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+  header h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header p { margin: 0; color: var(--muted); max-width: 820px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin: 20px 0 8px; }
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .kpi b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .kpi span { color: var(--muted); font-size: 13px; }
+  section { margin-top: 36px; }
+  section > h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--accent); margin: 0 0 4px; }
+  section > h3 { font-size: 21px; margin: 0 0 12px; }
+  section > p.lead { color: var(--muted); margin: -6px 0 14px; max-width: 820px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; min-width: 0; }
+  .card h4 { margin: 0 0 8px; font-size: 14px; }
+  .card .note { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  video, canvas { width: 100%; display: block; border-radius: 6px; background: #000; }
+  .chart { position: relative; height: 230px; }
+  .chart canvas { background: transparent; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+  th, td { text-align: right; padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { color: var(--muted); font-weight: 500; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  button { background: var(--accent); color: #0b1220; border: 0; border-radius: 8px; padding: 9px 16px; font: 600 14px system-ui; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  button:disabled { opacity: .5; cursor: default; }
+  .steps { max-height: 430px; overflow: auto; display: flex; flex-direction: column; gap: 6px; }
+  .step { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+  .step .tool { font-family: ui-monospace, Consolas, monospace; color: var(--accent); }
+  .step .bar { height: 6px; background: var(--accent); border-radius: 3px; margin-top: 6px; }
+  .step.best { border-color: var(--good); }
+  .step.worse .bar { background: var(--bad); }
+  .rec { border: 1px solid var(--good); }
+  .rec .big { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .evidence li { margin-bottom: 6px; font-size: 14px; }
+  .evidence code { color: var(--muted); font-size: 12px; }
+  .checks { display: grid; gap: 6px; font-size: 14px; }
+  .ok::before { content: "✓ "; color: var(--good); font-weight: 700; }
+  .no::before { content: "✗ "; color: var(--bad); font-weight: 700; }
+  a.clip { color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 48px; border-top: 1px solid var(--line); padding-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>Traffic Twin</h1>
+  <p>One fixed camera over a real Los Angeles intersection becomes a calibrated traffic simulation.
+     A Muse Spark agent then tests signal timings in that simulation and recommends one, with every
+     claim tied to a measurement. Each step is scored against independent ground truth.</p>
+  <div class="kpis" id="kpis"></div>
+</header>
+
+<section>
+  <h2>1 · See</h2>
+  <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
+  <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
+     2-second track trails. Right: the same tracks projected to the ground, in metres, north up.
+     The camera calibration was solved from the data, with no hand-placed points.</p>
+  <div class="grid2">
+    <div class="card"><video id="video" src="/static/video_katman.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><canvas id="bev" width="560" height="420"></canvas>
+      <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
+        <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · Measure</h2>
+  <h3>Is the twin right? Checked against ground truth it never saw</h3>
+  <p class="lead">NGSIM's own vehicle trajectories are used only for checking, never as input. The
+     simulation is calibrated to the video alone.</p>
+  <div class="grid2">
+    <div class="card"><h4>Turning counts, 18.7 minutes</h4><table id="counts"></table>
+      <div class="note">Classified from tracks by entry and exit arm.</div></div>
+    <div class="card"><h4>Signal plan recovered from vehicle movements</h4><div class="chart"><canvas id="signal"></canvas></div>
+      <div class="note" id="signalNote"></div></div>
+    <div class="card"><h4>Queue across the signal cycle, from north</h4><div class="chart"><canvas id="qK"></canvas></div></div>
+    <div class="card"><h4>Queue across the signal cycle, from south</h4><div class="chart"><canvas id="qG"></canvas></div>
+      <div class="note" id="calNote"></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>3 · Decide</h2>
+  <h3>A Muse Spark agent tests plans in the twin</h3>
+  <p class="lead">The agent can only state numbers that came from its tools: the intersection summary,
+     video queue evidence, the Webster textbook plan, and simulation runs over 3 random seeds. A verifier then
+     re-runs its recommendation, including on 10 seeds the agent never saw.</p>
+  <div class="row" style="margin-bottom:12px">
+    <button id="run">Replay the recorded agent run</button>
+    <button id="runLive" class="ghost" hidden>Run live (uses API credits)</button>
+    <span class="pill" id="agentState">idle</span>
+  </div>
+  <div class="grid2">
+    <div class="card"><h4>Tool calls</h4><div class="steps" id="steps"></div></div>
+    <div class="card rec" id="recCard"><h4>Recommendation</h4><div id="rec" class="note">Run the agent to see its answer.</div></div>
+  </div>
+</section>
+
+<section>
+  <h2>4 · Compare</h2>
+  <h3>Current plan vs recommended, side by side in the twin</h3>
+  <p class="lead">Same demand, same random seed, 5 minutes after warm-up. Dot colour shows speed: red is stopped.</p>
+  <div class="grid2">
+    <div class="card"><h4 id="simAh">Current plan</h4><canvas id="simA" width="520" height="420"></canvas></div>
+    <div class="card"><h4 id="simBh">Recommended plan</h4><canvas id="simB" width="520" height="420"></canvas></div>
+  </div>
+  <div class="row" style="margin-top:10px"><button id="simPlay" class="ghost">Play</button><input id="simT" type="range" min="0" max="599" value="0" style="flex:1"><span class="pill" id="simClock">0 s</span></div>
+</section>
+
+<footer>
+  Data: U.S. DOT FHWA Next Generation Simulation (NGSIM), Lankershim Boulevard, CC BY 2.0, doi:10.21949/1504477.
+  Models: SAM 3.1 and Muse Spark via Meta Model API. Simulation: Eclipse SUMO.
+  Results come from a simulation calibrated to one 18-minute morning period in 2005. They are not a field trial.
+  Code: <a href="https://github.com/alper-tekin/trafik-ikizi" style="color:var(--accent)">github.com/alper-tekin/trafik-ikizi</a>
+</footer>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const MOVE_COLOR = {1: getVar('--thru'), 2: getVar('--left'), 3: getVar('--right'), 0: getVar('--unk')};
+const DIR = {1: "Eastbound", 2: "Northbound", 3: "Westbound", 4: "Southbound"};
+const MOV_TR = {"düz": "through", "sol": "left", "sağ": "right"};
+const DIR_TR = {"doğuya": "Eastbound", "kuzeye": "Northbound", "batıya": "Westbound", "güneye": "Southbound"};
+function getVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+Chart.defaults.color = '#8b949e'; Chart.defaults.borderColor = '#2a313c'; Chart.defaults.font.family = 'system-ui'; Chart.defaults.maintainAspectRatio = false;
+
+let OZET, BEV, SIM_A, SIM_B;
+
+async function load() {
+  [OZET, BEV] = await Promise.all([fetch('/veri/ozet.json').then(r => r.json()), fetch('/veri/kusbakisi.json').then(r => r.json())]);
+  kpis(); counts(); signal(); queues(); bevLoop();
+  [SIM_A, SIM_B] = await Promise.all([fetch('/veri/sim_mevcut.json').then(r => r.json()), fetch('/veri/sim_onerilen.json').then(r => r.json())]);
+  simSetup();
+  const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
+}
+
+function kpis() {
+  const t = OZET.takip, c = OZET.sayimlar, k = OZET.kalibrasyon, a = OZET.ajan.dogrulama;
+  const ng = c.reduce((s, r) => s + r.ngsim, 0), us = c.reduce((s, r) => s + r.bizim, 0);
+  const items = [
+    [(t.hata_medyan_ft * 0.3048).toFixed(1) + ' m', 'median position error vs ground truth'],
+    [Math.round(t.kapsama * 100) + '%', 'ground-truth vehicles tracked'],
+    [((us - ng) / ng * 100).toFixed(1) + '%', `vehicle count error (${us} vs ${ng})`],
+    [OZET.sinyal.dongu_s + ' s', `signal cycle found (ground truth ${OZET.sinyal.ngsim_dongu_s} s)`],
+    [a.bagimsiz_10_tohum ? `${a.bagimsiz_10_tohum.taban_ort_gecikme_s} → ${a.bagimsiz_10_tohum.onerilen_ort_gecikme_s} s` : '-',
+     'avg delay, current → recommended (10 unseen seeds)'],
+  ];
+  $('#kpis').innerHTML = items.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
+}
+
+function counts() {
+  const rows = OZET.sayimlar.filter(r => r.ngsim >= 10);
+  $('#counts').innerHTML = '<tr><th>Direction</th><th>Move</th><th>Ground truth</th><th>From video</th><th>Diff</th></tr>' +
+    rows.map(r => `<tr><td>${DIR_TR[r.yon]}</td><td>${MOV_TR[r.hareket]}</td><td>${r.ngsim}</td><td>${r.bizim}</td>
+      <td style="color:${Math.abs(r.fark_yuzde) <= 5 ? 'var(--good)' : 'var(--warn)'}">${r.fark_yuzde > 0 ? '+' : ''}${r.fark_yuzde}%</td></tr>`).join('');
+}
+
+function signal() {
+  const s = OZET.sinyal, C = s.dongu_s;
+  const groups = [['guneye_sol', 'Southbound left'], ['guneye_duz', 'Southbound through'], ['kuzeye_duz', 'Northbound through'], ['dogu_bati', 'Cross street']];
+  const bars = (src) => groups.map(([g]) => { const w = s[src][g]; return [w.baslangic_s, w.baslangic_s + w.sure_s]; });
+  // Pencereler döngüde sarabilir; grafik için iki parçaya bölünür.
+  const split = arr => { const a = [], b = []; arr.forEach(([x, y]) => { if (y <= C) { a.push([x, y]); b.push(null); } else { a.push([x, C]); b.push([0, y - C]); } }); return [a, b]; };
+  const [v1, v2] = split(bars('bizim')), [n1, n2] = split(bars('ngsim'));
+  new Chart($('#signal'), {
+    type: 'bar',
+    data: { labels: groups.map(g => g[1]), datasets: [
+      { label: 'From video', data: v1, backgroundColor: '#58a6ffcc', barPercentage: .55, order: 2 },
+      { label: 'From video', data: v2, backgroundColor: '#58a6ffcc', barPercentage: .55, order: 2 },
+      { label: 'Ground truth', data: n1, backgroundColor: 'transparent', borderColor: '#3fb950', borderWidth: 2, borderSkipped: false, barPercentage: .8, order: 1 },
+      { label: 'Ground truth', data: n2, backgroundColor: 'transparent', borderColor: '#3fb950', borderWidth: 2, borderSkipped: false, barPercentage: .8, order: 1 },
+    ]},
+    options: { indexAxis: 'y', grouped: false, scales: { x: { min: 0, max: C, title: { display: true, text: 'second of the ' + C + ' s cycle' } } },
+      plugins: { legend: { labels: { filter: (it) => it.datasetIndex % 2 === 0 } } } }
+  });
+  $('#signalNote').textContent = 'Recovered without the signal logs: cycle length from the autocorrelation of crossings, each green from where crossings cluster. ' +
+    'Lead-lag left: southbound turns left first, then southbound goes straight, then both directions go.';
+}
+
+function queues() {
+  const p = OZET.kuyruk_profili, k = OZET.kalibrasyon;
+  const mk = (arm, el) => new Chart(el, {
+    type: 'line',
+    data: { labels: p.video[arm].map((_, i) => i), datasets: [
+      { label: 'Video (SAM 3.1 tracks)', data: p.video[arm], borderColor: '#58a6ff', pointRadius: 0, borderWidth: 2 },
+      { label: 'Ground truth (NGSIM)', data: p.ngsim[arm], borderColor: '#3fb950', pointRadius: 0, borderWidth: 2, borderDash: [5, 4] },
+      { label: 'Twin (SUMO)', data: p.sumo[arm], borderColor: '#f0b429', pointRadius: 0, borderWidth: 2 },
+    ]},
+    options: { scales: { x: { title: { display: true, text: 'second of cycle' }, ticks: { maxTicksLimit: 11 } }, y: { title: { display: true, text: 'stopped vehicles' }, beginAtZero: true } } }
+  });
+  mk('K', $('#qK')); mk('G', $('#qG'));
+  $('#calNote').textContent = `Queue profile error of the twin: ${k.en_iyi.rmse_ngsim.toFixed(1)} vehicles against ground truth. ` +
+    `The video itself is ${k.video_vs_ngsim_rmse.toFixed(1)} off, which is the floor for this measurement. The largest gains came from the lead-lag phase order and the turn-bay lane counts, not from driver parameters.`;
+}
+
+// --- kuşbakışı ---
+function bevLoop() {
+  const cv = $('#bev'), ctx = cv.getContext('2d'), v = $('#video');
+  const S = 2.4, cx = cv.width / 2, cy = cv.height / 2;  // px per metre
+  const trail = new Map();
+  function draw() {
+    const f = Math.round(v.currentTime * 5) * 2;
+    ctx.fillStyle = '#0b0e13'; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.fillStyle = '#1c222b';  // yollar: Lankershim dikey, ara sokak yatay
+    ctx.fillRect(cx - 22 * S, 0, 44 * S, cv.height); ctx.fillRect(0, cy - 14 * S, cv.width, 28 * S);
+    ctx.fillStyle = '#8b949e'; ctx.font = '12px system-ui';
+    ctx.fillText('N ↑  Lankershim Blvd', cx + 24 * S, 16); ctx.fillText('Universal Hollywood Dr', 8, cy - 15 * S);
+    const pts = BEV.kareler[f] || [];
+    const seen = new Set();
+    for (const [id, u, w, , h] of pts) {
+      const x = cx + w * S, y = cy - u * S; seen.add(id);
+      const tr = trail.get(id) || []; tr.push([x, y]); if (tr.length > 10) tr.shift(); trail.set(id, tr);
+      ctx.strokeStyle = MOVE_COLOR[h] + '88'; ctx.lineWidth = 2; ctx.beginPath();
+      tr.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.stroke();
+      ctx.fillStyle = MOVE_COLOR[h]; ctx.beginPath(); ctx.arc(x, y, 3.5, 0, 7); ctx.fill();
+    }
+    for (const id of trail.keys()) if (!seen.has(id)) trail.delete(id);
+    ctx.fillStyle = '#8b949e'; ctx.fillText(`${pts.length} tracked · t = ${v.currentTime.toFixed(1)} s`, 8, cv.height - 8);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// --- ajan ---
+function seek(t) { const v = $('#video'); v.currentTime = Math.max(0, t - 3); v.play(); v.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+
+function stepHtml(e, base, best) {
+  const r = e.sonuc || {};
+  if (e.arac === 'test_plan' || e.arac === 'webster_baseline') {
+    const m = e.arac === 'test_plan' ? r : r.simulated || {};
+    const p = m.plan || {};
+    if (!m.gecerli) return `<div class="step worse"><span class="tool">${e.arac}</span> rejected: ${(m.hatalar || []).join('; ')}</div>`;
+    const cls = m.ort_gecikme_s <= best ? 'best' : (m.ort_gecikme_s > base ? 'worse' : '');
+    return `<div class="step ${cls}"><span class="tool">${e.arac}</span> left ${p.sol_onde} · SB lead ${p.guney_onde} · shared ${p.ortak} · cross ${p.ara_sokak} (cycle ${p.dongu_s} s)
+      <div class="row" style="justify-content:space-between"><b>${m.ort_gecikme_s} s avg delay</b><span class="pill">seeds ${m.ort_gecikme_tohum_araligi_s.join('–')} s</span></div>
+      <div class="bar" style="width:${Math.min(100, m.ort_gecikme_s / 40 * 100)}%"></div></div>`;
+  }
+  if (e.arac === 'video_evidence') {
+    const w = (r.worst_moments || []).map(m => `<a class="clip" onclick="seek(${m.video_time_s})">${m.video_time_s.toFixed(0)} s (${m.stopped_vehicles} cars)</a>`).join(', ');
+    return `<div class="step"><span class="tool">video_evidence</span> ${r.approach}: mean queue ${r.mean_stopped_vehicles}; worst at ${w}</div>`;
+  }
+  return `<div class="step"><span class="tool">${e.arac}</span> current plan simulated: ${r.current_plan_simulated?.ort_gecikme_s ?? '-'} s avg delay</div>`;
+}
+
+function recHtml(c, d) {
+  const p = c.recommended_plan, gain = ((c.baseline_avg_delay_s - c.recommended_avg_delay_s) / c.baseline_avg_delay_s * 100).toFixed(0);
+  const v = d && d.bagimsiz_10_tohum;
+  const chk = (ok, t) => `<div class="${ok ? 'ok' : 'no'}">${t}</div>`;
+  return `<div class="row" style="align-items:baseline"><span class="big">${c.baseline_avg_delay_s} → ${c.recommended_avg_delay_s} s</span><span class="pill">−${gain}% average delay</span></div>
+    <p>${c.summary}</p>
+    <p class="note">Plan: southbound-only left ${p.sol_onde} s · southbound lead ${p.guney_onde} s · shared ${p.ortak} s · cross street ${p.ara_sokak} s</p>
+    <h4>Evidence</h4><ul class="evidence">${c.evidence.map(e => `<li>${e.claim} <code>${e.source}</code></li>`).join('')}</ul>
+    <h4>Caveats</h4><ul class="evidence">${c.caveats.map(x => `<li>${x}</li>`).join('')}</ul>
+    ${d ? `<h4>Verifier</h4><div class="checks">
+      ${chk(d.onerilen_plan_test_edildi, 'Recommended plan was actually simulated by the agent')}
+      ${chk(d.onerilen_gecikme_bildirilen === d.onerilen_gecikme_simulasyon && d.taban_gecikme_bildirilen === d.taban_gecikme_simulasyon, `Reported delays match re-simulation (${d.taban_gecikme_simulasyon} → ${d.onerilen_gecikme_simulasyon} s)`)}
+      ${chk(d.plan_kisitlara_uygun, 'Pedestrian minimums and cycle bounds respected')}
+      ${d.kol_gecikme_farki_s ? (() => { const f = d.kol_gecikme_farki_s, worse = Object.entries(f).filter(([, x]) => x > 0.5);
+          return chk(!worse.length, worse.length ? 'Approaches that get worse: ' + worse.map(([k, x]) => `${k} +${x} s`).join(', ')
+            : 'No approach gets worse by more than 0.5 s (' + Object.entries(f).map(([k, x]) => `${k} ${x > 0 ? '+' : ''}${x}`).join(', ') + ')'); })() : ''}
+      ${v ? chk(v.onerilen_tohum_araligi_s[1] < v.taban_tohum_araligi_s[0], `Holds on 10 unseen seeds: ${v.taban_ort_gecikme_s} → ${v.onerilen_ort_gecikme_s} s (ranges ${v.taban_tohum_araligi_s.join('–')} vs ${v.onerilen_tohum_araligi_s.join('–')})`) : ''}
+    </div>` : ''}`;
+}
+
+function runAgent(live) {
+  $('#run').disabled = true; $('#runLive').disabled = true; $('#steps').innerHTML = ''; $('#rec').innerHTML = 'Agent is working…';
+  $('#agentState').textContent = live ? 'live · muse-spark-1.3' : 'replaying recorded run · muse-spark-1.3';
+  let base = Infinity, best = Infinity, cevap = null;
+  const es = new EventSource('/api/ajan?canli=' + (live ? 1 : 0));
+  es.onmessage = ev => {
+    const e = JSON.parse(ev.data);
+    if (e.tur === 'adim') {
+      const r = e.sonuc || {};
+      if (e.arac === 'intersection_summary') base = r.current_plan_simulated?.ort_gecikme_s ?? base;
+      const m = e.arac === 'test_plan' ? r : (e.arac === 'webster_baseline' ? r.simulated : null);
+      if (m && m.gecerli) best = Math.min(best, m.ort_gecikme_s);
+      $('#steps').insertAdjacentHTML('beforeend', stepHtml(e, base, best));
+      $('#steps').scrollTop = 1e9;
+    } else if (e.tur === 'cevap') { cevap = e.cevap; if (cevap) $('#rec').innerHTML = recHtml(cevap, null); $('#rec').insertAdjacentHTML('beforeend', '<p class="note">Verifying…</p>'); }
+    else if (e.tur === 'dogrulama') { if (cevap) $('#rec').innerHTML = recHtml(cevap, e.dogrulama); }
+    else if (e.tur === 'hata') { $('#rec').textContent = 'Error: ' + e.mesaj; }
+    else if (e.tur === 'bitti') { es.close(); $('#run').disabled = false; $('#runLive').disabled = false; $('#agentState').textContent = 'done'; }
+  };
+  es.onerror = () => { es.close(); $('#run').disabled = false; $('#agentState').textContent = 'connection closed'; };
+}
+$('#run').onclick = () => runAgent(false);
+$('#runLive').onclick = () => runAgent(true);
+
+// --- simülasyon karşılaştırma ---
+function lightState(sim, t) {
+  const C = sim.fazlar.reduce((s, f) => s + f.sure, 0);
+  let x = (sim.baslangic_s + 120 + t) % C;  // 120 s ısınma, kayıt zamanından çıkarılmıştı
+  for (const f of sim.fazlar) { if (x < f.sure) return f.durum; x -= f.sure; }
+  return sim.fazlar[0].durum;
+}
+function drawSim(cv, sim, t) {
+  const ctx = cv.getContext('2d'), S = 1.9, cx = cv.width / 2, cy = cv.height / 2;
+  ctx.fillStyle = '#0b0e13'; ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.fillStyle = '#1c222b'; ctx.fillRect(cx - 22 * S, 0, 44 * S, cv.height); ctx.fillRect(0, cy - 14 * S, cv.width, 28 * S);
+  const st = lightState(sim, t), col = c => ({ G: '#3fb950', g: '#3fb95088', y: '#d29922', r: '#f85149' }[c] || '#f85149');
+  const lamps = [['gd', cx - 12 * S, cy - 18 * S], ['ks', cx - 4 * S, cy - 18 * S], ['kd', cx + 12 * S, cy + 18 * S], ['db', cx + 30 * S, cy - 8 * S], ['db', cx - 30 * S, cy + 8 * S]];
+  for (const [g, x, y] of lamps) { ctx.fillStyle = col(st[g]); ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); }
+  const key = (Math.round(t * 2) / 2).toFixed(1);
+  const pts = sim.kareler[key] || [];
+  let stopped = 0;
+  for (const [, u, w, h] of pts) {
+    if (h < 1) stopped++;
+    ctx.fillStyle = h < 1 ? '#f85149' : h < 5 ? '#d29922' : '#e6edf3';
+    ctx.beginPath(); ctx.arc(cx + w * S, cy - u * S, 3, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = '#8b949e'; ctx.font = '12px system-ui';
+  ctx.fillText(`${stopped} stopped now · ${Math.round(cumStopped(sim, t) / 60)} vehicle-minutes stopped so far`, 8, cv.height - 8);
+}
+// Oynatmanın başından t'ye kadar duran araç-saniye toplamı (2 Hz kayıt, her kare 0,5 s).
+function cumStopped(sim, t) {
+  if (!sim._cum) {
+    const keys = Object.keys(sim.kareler).map(Number).sort((a, b) => a - b);
+    let acc = 0; sim._cum = new Map();
+    for (const k of keys) { acc += sim.kareler[k.toFixed(1)].filter(p => p[3] < 1).length * 0.5; sim._cum.set(k.toFixed(1), acc); }
+  }
+  return sim._cum.get((Math.round(t * 2) / 2).toFixed(1)) || 0;
+}
+function simSetup() {
+  const pa = SIM_A.plan, pb = SIM_B.plan;
+  const lbl = p => `left ${p.sol_onde} · SB lead ${p.guney_onde} · shared ${p.ortak} · cross ${p.ara_sokak}`;
+  $('#simAh').textContent = 'Current plan (from video) · ' + lbl(pa);
+  $('#simBh').textContent = 'Recommended by agent · ' + lbl(pb);
+  const max = Object.keys(SIM_A.kareler).length / 2 - 1; $('#simT').max = max;
+  let t = 0, playing = false, last = 0;
+  const render = () => { drawSim($('#simA'), SIM_A, t); drawSim($('#simB'), SIM_B, t); $('#simT').value = t; $('#simClock').textContent = t.toFixed(0) + ' s'; };
+  $('#simT').oninput = e => { t = +e.target.value; render(); };
+  $('#simPlay').onclick = () => { playing = !playing; $('#simPlay').textContent = playing ? 'Pause' : 'Play'; last = performance.now(); if (playing) requestAnimationFrame(tick); };
+  function tick(now) { if (!playing) return; t += (now - last) / 1000 * 4; last = now; if (t > max) t = 0; render(); requestAnimationFrame(tick); }
+  render();
+}
+
+load();
+</script>
+</body>
+</html>

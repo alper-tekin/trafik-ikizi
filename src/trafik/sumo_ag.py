@@ -208,6 +208,17 @@ def kur(klasor: Path, sayimlar: dict, sure_s: float, yesil: dict, dongu: float, 
     return yapilandirma_yaz(klasor, ag, talep, sinyal, sure_s)
 
 
+def sim_faz0(yol: str = "data/sinyal_plani.json", isinma_s: float = 120.0) -> float:
+    """SUMO döngüsü simülasyon saniyesi 0'da önden-sol fazıyla başlar; kayıtlar ise
+    ısınmadan sonra (t = simülasyon saniyesi - isinma_s) başlar. Video döngü
+    profilleri güneye düz yeşilinin başından sayılır ve önden-sol orada
+    baslangic_s'de başlar. kuyruk_profili(sim, C, sim_faz0()) ikisini hizalar.
+    (Veriden en iyi kayma ölçüldüğünde bu formülle ~5 s içinde tutuyor.)"""
+    p = json.load(open(yol, encoding="utf-8"))
+    C = float(p["dongu_s"])
+    return -((float(p["bizim"]["guneye_sol"]["baslangic_s"]) + isinma_s) % C)
+
+
 def plan_videodan(yol: str = "data/sinyal_plani.json") -> tuple[dict, float]:
     """Yön bazlı yeşil pencerelerinden (sinyal_cikar.py) önden-sol faz süreleri."""
     p = json.load(open(yol, encoding="utf-8"))

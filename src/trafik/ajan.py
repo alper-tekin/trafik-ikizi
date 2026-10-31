@@ -177,7 +177,9 @@ class Ortam:
 
 
 def calistir(soru: str = "Find a better signal plan for this intersection.", en_cok_adim: int = 20,
-             kayit_klasoru: str = "data/ajan") -> dict:
+             kayit_klasoru: str = "data/ajan", bildir=None) -> dict:
+    """bildir(olay: dict) verilirse her araç çağrısında ve sonda çağrılır (arayüz akışı için)."""
+    bildir = bildir or (lambda olay: None)
     load_dotenv()
     client = OpenAI(base_url="https://api.meta.ai/v1", api_key=os.environ["MODEL_API_KEY"])
     ortam = Ortam()
@@ -206,6 +208,7 @@ def calistir(soru: str = "Find a better signal plan for this intersection.", en_
             except Exception as hata:  # ajan hatayı görsün ve düzeltsin
                 sonuc = {"error": repr(hata)}
             kayit["adimlar"].append({"arac": c.name, "argumanlar": arg, "sonuc": sonuc})
+            bildir({"tur": "adim", "no": len(kayit["adimlar"]), **kayit["adimlar"][-1]})
             print(f"[{len(kayit['adimlar'])}] {c.name} {arg} -> "
                   f"{sonuc.get('ort_gecikme_s', sonuc.get('simulated', {}).get('ort_gecikme_s', '')) if isinstance(sonuc, dict) else ''}",
                   flush=True)
@@ -228,7 +231,9 @@ def calistir(soru: str = "Find a better signal plan for this intersection.", en_
     except ValueError:
         kayit["cevap"] = None
     kayit["bitis"] = time.time()
+    bildir({"tur": "cevap", "cevap": kayit["cevap"], "cevap_metni": metin})
     kayit["dogrulama"] = dogrula(kayit, ortam)
+    bildir({"tur": "dogrulama", "dogrulama": kayit["dogrulama"]})
 
     Path(kayit_klasoru).mkdir(parents=True, exist_ok=True)
     yol = Path(kayit_klasoru) / f"kosu_{int(kayit['baslangic'])}.json"
@@ -259,6 +264,11 @@ def dogrula(kayit: dict, ortam: Ortam) -> dict:
         "taban_gecikme_simulasyon": taban.get("ort_gecikme_s"),
         "plan_kisitlara_uygun": gercek.get("gecerli", False),
     }
+    if gercek.get("gecerli"):
+        # Ajanın "hiçbir yön kötüleşmedi" gibi iddialarını denetlemek için yön bazlı fark.
+        sonuc["kol_gecikme_farki_s"] = {
+            k: round(gercek["kol_gecikme_s"][k] - v, 1) for k, v in taban["kol_gecikme_s"].items()
+        }
     if gercek.get("gecerli"):
         # Ajan planı 1-3 numaralı tohumlarla seçti; hiç görmediği tohumlarda da
         # kazanç sürüyor mu? (tohumlara ezber kontrolü)

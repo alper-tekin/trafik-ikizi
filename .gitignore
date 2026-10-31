@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .venv/
 sim/
+web/static/*.mp4
+web/veri/

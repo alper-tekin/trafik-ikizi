@@ -19,7 +19,7 @@ import pandas as pd
 
 from trafik import olcum
 from trafik.simule import calistir
-from trafik.sumo_ag import kur, plan_videodan
+from trafik.sumo_ag import kur, plan_videodan, sim_faz0
 
 SURE_S = 1122.0
 KOLLAR = ["K", "G"]
@@ -48,7 +48,7 @@ def main() -> None:
     for tau, accel in itertools.product([0.8, 1.0, 1.2], [1.5, 2.0, 2.6]):
         surucu = {"tau": tau, "accel": accel}
         cfg = kur(Path("sim/kalibre"), sayim, SURE_S, yesil, dongu, surucu=surucu)
-        q = olcum.kuyruk_profili(calistir(cfg), C, 0.0)
+        q = olcum.kuyruk_profili(calistir(cfg), C, sim_faz0())
         hata = rmse(q, video)
         sonuclar.append({**surucu, "rmse_video": hata, "rmse_ngsim": rmse(q, ngsim),
                          "ort_kuyruk": q.reindex(columns=KOLLAR, fill_value=0).mean().round(2).to_dict()})

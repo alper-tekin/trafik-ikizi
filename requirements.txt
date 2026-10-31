@@ -5,3 +5,8 @@ python-dotenv
 pandas
 pyarrow
 scipy
+fastapi
+uvicorn
+eclipse-sumo
+traci
+sumolib
