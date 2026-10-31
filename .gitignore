@@ -6,3 +6,5 @@ __pycache__/
 sim/
 web/static/*.mp4
 web/veri/
+docs/demo_senaryo.md
+docs/teslim_metni.md
