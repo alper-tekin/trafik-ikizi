@@ -145,43 +145,188 @@ function networkImage(W) {
   return c;
 }
 
-// Koyu şematik görünüm: yalnızca yolla ilgili katmanlar çizilir (çimen, ağaç, bina çizilmez;
-// zemin koyu kalır). Renkler eski şematik çizimle aynı.
-const SAHNE_RENK = {
-  kaldirim: '#2b323b', yol: '#262b32', gecit: '#d0d7de55',
-  beyaz_cizgi: '#c9d1d9d9', sari_cizgi: '#e3b341', ok: '#e6edf399',
-};
-const SAHNE_SIRA = ['kaldirim', 'yol', 'gecit', 'beyaz_cizgi', 'sari_cizgi', 'ok'];
+// Şehir kurma oyunu tarzı sahne: dokulu çimen, karo kaldırım, bordür gölgeli asfalt, net
+// boyalar, gölgeli ağaç tepeleri ve hacimli binalar. Geometri SAM katmanlarından (gerçek yol).
 
-function sahneCiz(ctx, gr) {
-  const S = window.SAHNE, k = gr.W / S.genislik;
-  const yol = p => {
-    ctx.beginPath();
-    p.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
-    ctx.closePath();
-  };
-  for (const ad of SAHNE_SIRA) {
-    ctx.fillStyle = SAHNE_RENK[ad];
-    for (const p of S.katmanlar[ad] || []) {
-      yol(p); ctx.fill();
-      if (ad === 'yol') {  // yol kenarı (bordür)
-        ctx.strokeStyle = '#3a434e'; ctx.lineWidth = Math.max(1.5, gr.W / 400); ctx.stroke();
-      }
+// Tekrarlanabilir rastgele sayı üreteci (her açılışta aynı sahne)
+function rng(tohum) {
+  let s = tohum >>> 0 || 1;
+  return () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+}
+
+// Gürültülü küçük doku tuvali; hedef bağlamda desen olarak kullanılır.
+function doku(boyut, taban, oynama, lekeler, tohum, karo = 0) {
+  const c = document.createElement('canvas'); c.width = c.height = boyut;
+  const x = c.getContext('2d'), r = rng(tohum);
+  x.fillStyle = taban; x.fillRect(0, 0, boyut, boyut);
+  const img = x.getImageData(0, 0, boyut, boyut), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = (r() - 0.5) * oynama;
+    d[i] += v; d[i + 1] += v; d[i + 2] += v;
+  }
+  x.putImageData(img, 0, 0);
+  for (let i = 0; i < lekeler; i++) {
+    x.fillStyle = r() < 0.5 ? `rgba(0,0,0,${r() * 0.07})` : `rgba(255,255,255,${r() * 0.05})`;
+    x.beginPath(); x.arc(r() * boyut, r() * boyut, 0.5 + r() * 4, 0, 7); x.fill();
+  }
+  if (karo) {  // kaldırım karoları
+    x.strokeStyle = 'rgba(0,0,0,0.10)'; x.lineWidth = 1;
+    for (let p = 0; p <= boyut; p += karo) {
+      x.beginPath(); x.moveTo(p + 0.5, 0); x.lineTo(p + 0.5, boyut); x.stroke();
+      x.beginPath(); x.moveTo(0, p + 0.5); x.lineTo(boyut, p + 0.5); x.stroke();
     }
   }
-  // Boyası fotoğrafta görünmeyen kollarda (parlak beton) şerit ayırıcıları, o koldaki araçların
-  // gerçekte izlediği şeritlerden (geometri.json): yanal merkezlerin orta noktaları, kesikli.
+  return c;
+}
+
+function cokgenYolu(ctx, p, k) {
+  ctx.beginPath();
+  p.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
+  ctx.closePath();
+}
+
+// Kameranın bakış noktasına göre binaların duvarlarının görüneceği yön (görüntü merkezinden dışarı).
+function disariYon(p, gr, k) {
+  const cx = p.reduce((a, q) => a + q[0], 0) / p.length * k, cy = p.reduce((a, q) => a + q[1], 0) / p.length * k;
+  const dx = cx - gr.W / 2, dy = cy - gr.H / 2, L = Math.hypot(dx, dy) || 1;
+  return [dx / L, dy / L];
+}
+
+function sahneCiz(ctx, gr) {
+  const S = window.SAHNE, k = gr.W / S.genislik, kat = S.katmanlar, r = rng(7);
+  const desen = (c) => ctx.createPattern(c, 'repeat');
+  const cimDeseni = desen(doku(96, '#4b7a37', 26, 260, 11));
+  const parkDeseni = desen(doku(96, '#5b8d43', 22, 200, 12));
+  const asfaltDeseni = desen(doku(128, '#3a3d42', 16, 420, 13));
+  const betonDeseni = desen(doku(96, '#b7b2a6', 12, 120, 14, Math.max(6, Math.round(8 * k))));
+  const GOLGE = [0.55 * k * 6, 0.8 * k * 6];  // güneş: sol üstten
+
+  // 1. Zemin: çimen ve büyük ölçekli renk lekeleri
+  ctx.fillStyle = cimDeseni; ctx.fillRect(0, 0, gr.W, gr.H);
+  for (let i = 0; i < 40; i++) {
+    const x = r() * gr.W, y = r() * gr.H, rad = (30 + r() * 90) * k;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, rad);
+    g.addColorStop(0, r() < 0.5 ? 'rgba(20,40,10,0.18)' : 'rgba(170,200,110,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
+  for (const p of kat.cim || []) { cokgenYolu(ctx, p, k); ctx.fillStyle = parkDeseni; ctx.fill(); }
+
+  // 2. Kaldırımlar: SAM kaldırımları + yolu çevreleyen kaldırım şeridi
+  ctx.fillStyle = betonDeseni;
+  for (const p of kat.kaldirim || []) { cokgenYolu(ctx, p, k); ctx.fill(); }
+  ctx.strokeStyle = betonDeseni; ctx.lineJoin = 'round'; ctx.lineWidth = 9 * k;
+  for (const p of kat.yol || []) { cokgenYolu(ctx, p, k); ctx.stroke(); }
+
+  // 3. Bina ve ağaç gölgeleri (zemine düşer)
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.filter = `blur(${2 * k}px)`;
+  ctx.translate(GOLGE[0] * 4, GOLGE[1] * 4);
+  for (const p of kat.bina || []) { cokgenYolu(ctx, p, k); ctx.fill(); }
+  ctx.restore();
+
+  // 4. Asfalt, bordür ve bordürün yola düşen gölgesi
+  for (const p of kat.yol || []) {
+    cokgenYolu(ctx, p, k); ctx.fillStyle = asfaltDeseni; ctx.fill();
+    ctx.save(); cokgenYolu(ctx, p, k); ctx.clip();
+    ctx.strokeStyle = 'rgba(0,0,0,0.38)'; ctx.lineWidth = 6 * k; ctx.filter = `blur(${2.5 * k}px)`; ctx.stroke();
+    ctx.restore();
+    cokgenYolu(ctx, p, k); ctx.strokeStyle = '#dcd7cb'; ctx.lineWidth = Math.max(1.2, 1.4 * k); ctx.stroke();
+  }
+
+  // 5. Yol boyaları
+  const boya = (ad, renk) => {
+    ctx.fillStyle = renk;
+    for (const p of kat[ad] || []) { cokgenYolu(ctx, p, k); ctx.fill(); }
+  };
+  boya('beyaz_cizgi', 'rgba(240,240,236,0.92)');
+  boya('sari_cizgi', 'rgba(232,184,40,0.95)');
+  boya('ok', 'rgba(240,240,236,0.9)');
+  for (const p of kat.gecit || []) zebra(ctx, p, k);
+
+  // Boyası görünmeyen kollarda ölçülen şerit ayırıcıları (kesikli)
   for (const kol of S.olculen_serit_kollari || []) {
     const g = AG.olculen[kol], e = g.e, n = g.n;
     for (const taraf of ['gelen', 'giden']) {
       const m = [...g[taraf].merkez].sort((a, b) => a - b);
       for (let i = 0; i + 1 < m.length; i++) {
         const s = (m[i] + m[i + 1]) / 2;
-        const a = [e[0] * (g.durma_m + 1) + n[0] * s, e[1] * (g.durma_m + 1) + n[1] * s];
-        const b = [e[0] * 75 + n[0] * s, e[1] * 75 + n[1] * s];
-        kesikli(ctx, gr, a, b, 0.15, '#d8dee499');
+        kesikli(ctx, gr, [e[0] * (g.durma_m + 1) + n[0] * s, e[1] * (g.durma_m + 1) + n[1] * s],
+          [e[0] * 75 + n[0] * s, e[1] * 75 + n[1] * s], 0.15, 'rgba(240,240,236,0.8)');
       }
     }
+  }
+
+  // 6. Binalar (duvar + çatı) ve ağaçlar en üstte
+  for (const p of kat.bina || []) bina(ctx, gr, p, k, r);
+  for (const p of kat.agac || []) agaclar(ctx, p, k, r, GOLGE);
+
+  // 7. Hafif vinyet
+  const v = ctx.createRadialGradient(gr.W / 2, gr.H / 2, gr.H * 0.35, gr.W / 2, gr.H / 2, gr.W * 0.75);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.28)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, gr.W, gr.H);
+}
+
+// Yaya geçidi: çokgenin uzun ekseni boyunca, ona dik zebra çizgileri.
+function zebra(ctx, p, k) {
+  const n = p.length, mx = p.reduce((a, q) => a + q[0], 0) / n, my = p.reduce((a, q) => a + q[1], 0) / n;
+  let sxx = 0, syy = 0, sxy = 0;
+  for (const [x, y] of p) { sxx += (x - mx) ** 2; syy += (y - my) ** 2; sxy += (x - mx) * (y - my); }
+  const a = 0.5 * Math.atan2(2 * sxy, sxx - syy), ux = Math.cos(a), uy = Math.sin(a);
+  const uz = Math.max(...p.map(([x, y]) => Math.abs((x - mx) * ux + (y - my) * uy)));
+  ctx.save(); cokgenYolu(ctx, p, k); ctx.clip();
+  ctx.fillStyle = 'rgba(0,0,0,0.15)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(242,242,238,0.95)'; ctx.lineWidth = 2.6 * k;
+  for (let t = -uz; t <= uz; t += 5.5) {
+    const cx = (mx + ux * t) * k, cy = (my + uy * t) * k;
+    ctx.beginPath(); ctx.moveTo(cx - uy * 40 * k, cy + ux * 40 * k); ctx.lineTo(cx + uy * 40 * k, cy - ux * 40 * k); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// Hacimli bina: duvarlar kamera merkezinden dışarı doğru görünür, üstte çatı.
+function bina(ctx, gr, p, k, r) {
+  const [dx, dy] = disariYon(p, gr, k), yuk = 22 * k, ox = -dx * yuk, oy = -dy * yuk;
+  const P = p.map(([x, y]) => [x * k, y * k]), T = P.map(([x, y]) => [x + ox, y + oy]);
+  for (let i = 0; i < P.length; i++) {
+    const j = (i + 1) % P.length;
+    ctx.beginPath(); ctx.moveTo(...P[i]); ctx.lineTo(...P[j]); ctx.lineTo(...T[j]); ctx.lineTo(...T[i]); ctx.closePath();
+    const ex = P[j][0] - P[i][0], ey = P[j][1] - P[i][1], isik = Math.max(0, (-ey * 0.6 - ex * 0.8) / (Math.hypot(ex, ey) || 1));
+    ctx.fillStyle = `rgb(${92 + isik * 70},${84 + isik * 62},${74 + isik * 55})`; ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+  }
+  ctx.beginPath(); T.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+  const xs = T.map(q => q[0]), ys = T.map(q => q[1]);
+  const g = ctx.createLinearGradient(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys));
+  g.addColorStop(0, '#d9cdb4'); g.addColorStop(1, '#ad9f86'); ctx.fillStyle = g; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 1.2 * k; ctx.stroke();
+  ctx.save(); ctx.clip();  // çatı üstü klima üniteleri
+  for (let i = 0; i < 14; i++) {
+    const x = Math.min(...xs) + r() * (Math.max(...xs) - Math.min(...xs)), y = Math.min(...ys) + r() * (Math.max(...ys) - Math.min(...ys));
+    ctx.fillStyle = 'rgba(0,0,0,0.25)'; ctx.fillRect(x + 1.5 * k, y + 1.5 * k, 5 * k, 4 * k);
+    ctx.fillStyle = '#cfd2d4'; ctx.fillRect(x, y, 5 * k, 4 * k);
+  }
+  ctx.restore();
+}
+
+// Ağaç kümesi: çokgenin içine dağılmış, gölgeli ve ışıklı yuvarlak tepeler.
+function agaclar(ctx, p, k, r, golge) {
+  const xs = p.map(q => q[0]), ys = p.map(q => q[1]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const alan = (x1 - x0) * (y1 - y0), sayi = Math.min(90, Math.max(1, Math.round(alan / 45)));
+  const yol = new Path2D(); p.forEach(([x, y], i) => (i ? yol.lineTo(x, y) : yol.moveTo(x, y))); yol.closePath();
+  const tepeler = [];
+  for (let i = 0, deneme = 0; i < sayi && deneme < sayi * 8; deneme++) {
+    const x = x0 + r() * (x1 - x0), y = y0 + r() * (y1 - y0);
+    if (!ctx.isPointInPath(yol, x, y)) continue;
+    tepeler.push([x * k, y * k, (6.5 + r() * 5) * k]); i++;
+  }
+  if (!tepeler.length) tepeler.push([(x0 + x1) / 2 * k, (y0 + y1) / 2 * k, Math.max(4, Math.min(x1 - x0, y1 - y0) / 2) * k]);
+  ctx.save(); ctx.fillStyle = 'rgba(0,0,0,0.32)'; ctx.filter = `blur(${1.5 * k}px)`;
+  for (const [x, y, rad] of tepeler) { ctx.beginPath(); ctx.arc(x + golge[0], y + golge[1], rad, 0, 7); ctx.fill(); }
+  ctx.restore();
+  for (const [x, y, rad] of tepeler) {
+    const g = ctx.createRadialGradient(x - rad * 0.35, y - rad * 0.4, rad * 0.1, x, y, rad);
+    g.addColorStop(0, '#7fb35a'); g.addColorStop(0.55, '#4d8237'); g.addColorStop(1, '#2c5424');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, rad, 0, 7); ctx.fill();
   }
 }
 
@@ -203,14 +348,15 @@ function yerOklari(ctx, gr, merkez, [du, dw], dirs) {
 
 function yaziVePusula(ctx, gr) {
   const fs = Math.round(gr.W / 46);
-  ctx.font = `${fs}px system-ui`; ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
+  ctx.font = `600 ${fs}px system-ui`; ctx.fillStyle = '#f0f3f6'; ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0,0,0,0.8)'; ctx.shadowBlur = 4;  // çimen üstünde okunaklı
   const yaz = (t, u, w) => { const [x, y] = gr.P(u, w); if (x > 0 && x < gr.W && y > 0 && y < gr.H) ctx.fillText(t, x, y); };
   yaz('Lankershim Blvd', 46, -24);
   yaz('Universal Hollywood Dr', 16, -30);
   // pusula: kuzeyin ekrandaki yönü
   const [x0, y0] = gr.P(0, 0), [x1, y1] = gr.P(10, 0), a = Math.atan2(y1 - y0, x1 - x0);
   const cx = gr.W - fs * 4.2, cy = fs * 3.2, r = fs * 1.3;  // "N" harfi tuvalin içinde kalsın
-  ctx.strokeStyle = '#8b949e'; ctx.lineWidth = Math.max(1, fs / 9);
+  ctx.strokeStyle = '#f0f3f6'; ctx.lineWidth = Math.max(1, fs / 9);
   ctx.beginPath(); ctx.moveTo(cx - Math.cos(a) * r, cy - Math.sin(a) * r); ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
   ctx.lineTo(cx + Math.cos(a + 2.6) * r * 0.5 + Math.cos(a) * r * 0.5, cy + Math.sin(a + 2.6) * r * 0.5 + Math.sin(a) * r * 0.5);
@@ -218,7 +364,7 @@ function yaziVePusula(ctx, gr) {
   ctx.lineTo(cx + Math.cos(a - 2.6) * r * 0.5 + Math.cos(a) * r * 0.5, cy + Math.sin(a - 2.6) * r * 0.5 + Math.sin(a) * r * 0.5);
   ctx.stroke();
   ctx.fillText('N', cx + Math.cos(a) * r * 1.9, cy + Math.sin(a) * r * 1.9 + fs * 0.35);
-  ctx.textAlign = 'start';
+  ctx.textAlign = 'start'; ctx.shadowBlur = 0;
 }
 
 // ---------------------------------------------------------------- ışıklar ve araçlar
@@ -234,24 +380,59 @@ function drawSignals(ctx, gr, state) {
   }
 }
 
+// Gerçekçi araç renkleri (beyaz, gümüş, siyah ağırlıklı); aracın kimliğinden sabit seçilir.
+const BOYA = ['#eceeef', '#eceeef', '#c3c7cb', '#c3c7cb', '#2a2d32', '#2a2d32', '#5a5f66',
+              '#8f1f1f', '#1f4c8a', '#9aa1a8', '#0f3a2c', '#b8892c', '#f4f4f2'];
+function boyaSec(id) {
+  let h = 0;
+  for (const ch of String(id)) h = (Math.imul(h, 31) + ch.charCodeAt(0)) >>> 0;
+  return BOYA[h % BOYA.length];
+}
+
 // v: [id, u, w, hız, açı]. onTampon: konum ön tampon mu (SUMO) yoksa aracın ortası mı (video izi).
 function drawCar(ctx, gr, v, renk, onTampon = true) {
   const [id, u, w, hiz, aciDer] = v, a = aciDer * Math.PI / 180;  // 0 = kuzey, saat yönünde
   const fu = Math.cos(a), fw = Math.sin(a), su = -fw, sw = fu, boy = 4.6, en = 1.9;
   const geri = onTampon ? boy / 2 : 0, cu = u - fu * geri, cw = w - fw * geri;
-  // aracın kendi ekseninde (ileri, yan) -> yer
+  // aracın kendi ekseninde (ileri, yan) -> yer -> ekran
   const p = (i, y) => [cu + fu * i + su * y, cw + fw * i + sw * y];
   const kutu = (i0, i1, y0, y1) => [p(i0, y0), p(i1, y0), p(i1, y1), p(i0, y1)];
-  ctx.save(); ctx.translate(1, 1.5); yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), '#00000070'); ctx.restore();
-  yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), renk || BODY[String(id)[0]] || '#c9d1d9');
-  yerCokgen(ctx, gr, kutu(boy * 0.06, boy * 0.24, -en * 0.36, en * 0.36), '#0d1117cc');     // ön cam
-  yerCokgen(ctx, gr, kutu(-boy * 0.36, -boy * 0.24, -en * 0.34, en * 0.34), '#0d111788');  // arka cam
+  const govde = renk || boyaSec(id);
+
+  // gölge
+  ctx.save(); ctx.filter = 'blur(1.5px)'; ctx.translate(1.5, 2);
+  yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2 - 0.1, en / 2 + 0.1), 'rgba(0,0,0,0.45)');
+  ctx.restore();
+  // gövde: yanlardan ortaya doğru parlayan degrade
+  const [lx, ly] = gr.P(...p(0, -en / 2)), [rx, ry] = gr.P(...p(0, en / 2));
+  const g = ctx.createLinearGradient(lx, ly, rx, ry);
+  g.addColorStop(0, golgele(govde, -0.35)); g.addColorStop(0.5, golgele(govde, 0.12)); g.addColorStop(1, golgele(govde, -0.35));
+  yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), g);
+  // tavan
+  yerCokgen(ctx, gr, kutu(-boy * 0.2, boy * 0.12, -en * 0.36, en * 0.36), golgele(govde, -0.08));
+  // ön ve arka cam
+  yerCokgen(ctx, gr, kutu(boy * 0.12, boy * 0.28, -en * 0.38, en * 0.38), '#1b2633');
+  yerCokgen(ctx, gr, kutu(boy * 0.15, boy * 0.2, -en * 0.3, en * 0.05), 'rgba(160,200,230,0.35)');  // yansıma
+  yerCokgen(ctx, gr, kutu(-boy * 0.34, -boy * 0.22, -en * 0.36, en * 0.36), '#1b2633');
+  // farlar
+  yerCokgen(ctx, gr, kutu(boy / 2 - 0.12, boy / 2, -en * 0.44, -en * 0.24), 'rgba(255,248,220,0.9)');
+  yerCokgen(ctx, gr, kutu(boy / 2 - 0.12, boy / 2, en * 0.24, en * 0.44), 'rgba(255,248,220,0.9)');
   if (hiz < 0.5) {  // duruyor: fren lambaları
-    ctx.save(); ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = 10;
-    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.15, -boy / 2 + 0.25, -en * 0.46, -en * 0.2), '#ff4d4d');
-    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.15, -boy / 2 + 0.25, en * 0.2, en * 0.46), '#ff4d4d');
+    ctx.save(); ctx.shadowColor = '#ff2a2a'; ctx.shadowBlur = 8;
+    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.1, -boy / 2 + 0.22, -en * 0.46, -en * 0.22), '#ff4040');
+    yerCokgen(ctx, gr, kutu(-boy / 2 - 0.1, -boy / 2 + 0.22, en * 0.22, en * 0.46), '#ff4040');
     ctx.restore();
+  } else {
+    yerCokgen(ctx, gr, kutu(-boy / 2, -boy / 2 + 0.15, -en * 0.46, -en * 0.24), '#7a1a1a');
+    yerCokgen(ctx, gr, kutu(-boy / 2, -boy / 2 + 0.15, en * 0.24, en * 0.46), '#7a1a1a');
   }
+}
+
+// Onaltılık rengi açar (+) ya da koyulaştırır (-).
+function golgele(hex, oran) {
+  const n = parseInt(hex.slice(1, 7), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const m = c.map(v => Math.round(oran >= 0 ? v + (255 - v) * oran : v * (1 + oran)));
+  return `rgb(${m[0]},${m[1]},${m[2]})`;
 }
 
 // Her kolun gelen şeritlerinin yanına o kolun ortalama beklemesi (10 tohum, tüm simülasyon).
