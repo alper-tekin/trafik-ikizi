@@ -55,6 +55,20 @@ def main() -> None:
             ofset += SAYFA
     gecici.replace(hedef)
     print(hedef)
+    kavsak2_alt_kumesi(hedef)
+
+
+def kavsak2_alt_kumesi(kaynak: Path) -> None:
+    """Kamera 2'nin baktığı bölge (kavşak 2 çevresi, local_y 150-700 ft) ve
+    yörünge başlangıcından itibaren saniye cinsinden zaman (t)."""
+    import pandas as pd
+
+    d = pd.read_csv(kaynak)
+    d["t"] = (d.global_time - d.global_time.min()) / 1000.0
+    alt = d[(d.local_y > 150) & (d.local_y < 700)]
+    yol = kaynak.parent / "kavsak2.parquet"
+    alt.to_parquet(yol)
+    print(yol, len(alt), "satır")
 
 
 if __name__ == "__main__":
