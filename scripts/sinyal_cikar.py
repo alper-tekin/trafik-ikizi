@@ -23,6 +23,9 @@ from trafik.akis import yerel
 VIDEO_SURE_S = 1122
 GRUPLAR = {
     "kuzey_guney": lambda d: d.yon.isin([2, 4]) & (d.hareket != 2),
+    # Bu kavşakta önden sol var: güneye giden yön kuzeye gidenden önce açılıyor.
+    "guneye_duz": lambda d: (d.yon == 4) & (d.hareket == 1),
+    "kuzeye_duz": lambda d: (d.yon == 2) & (d.hareket == 1),
     "guneye_sol": lambda d: (d.yon == 4) & (d.hareket == 2),
     "dogu_bati": lambda d: d.yon.isin([1, 3]),
 }
