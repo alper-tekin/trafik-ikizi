@@ -93,12 +93,11 @@ function networkImage(W) {
   const ctx = c.getContext('2d'), lanes = AG.seritler;
   ctx.fillStyle = '#0d1410'; ctx.fillRect(0, 0, gr.W, gr.H);
 
-  // Zemin: videodan çıkarılan araçsız yol fotoğrafı (kameranın kendi kadrajında, birebir).
-  // Gerçek şerit çizgileri, geçitler ve oklar fotoğraftan gelir; araçlar öne çıksın diye karartılır.
-  if (window.ARKA_PLAN) {
-    ctx.filter = 'saturate(0.45) brightness(0.6) contrast(1.05)';
-    ctx.drawImage(window.ARKA_PLAN, 0, 0, gr.W, gr.H);
-    ctx.filter = 'none';
+  // Zemin: araçsız yol fotoğrafının SAM 3.1 ile çıkarılmış katmanları (yol, kaldırım, geçit,
+  // şerit çizgileri, oklar...), kendi renklerimizle. Çokgenler kameranın piksel düzleminde
+  // olduğu için yolun asimetrisi birebir korunur.
+  if (window.SAHNE) {
+    sahneCiz(ctx, gr);
     yaziVePusula(ctx, gr);
     netCache.set(W, c);
     return c;
@@ -144,6 +143,38 @@ function networkImage(W) {
   yaziVePusula(ctx, gr);
   netCache.set(W, c);
   return c;
+}
+
+const SAHNE_RENK = {
+  cim: '#1d3622', agac: '#21402a', bina: '#3a3631', kaldirim: '#3b4148', yol: '#262b32',
+  gecit: '#cfd6dd', beyaz_cizgi: '#d8dee4', sari_cizgi: '#e3b341', ok: '#cfd6dd',
+};
+const SAHNE_SIRA = ['cim', 'agac', 'bina', 'kaldirim', 'yol', 'gecit', 'beyaz_cizgi', 'sari_cizgi', 'ok'];
+
+function sahneCiz(ctx, gr) {
+  const S = window.SAHNE, k = gr.W / S.genislik;
+  for (const ad of SAHNE_SIRA) {
+    ctx.fillStyle = SAHNE_RENK[ad];
+    for (const p of S.katmanlar[ad] || []) {
+      ctx.beginPath();
+      p.forEach(([x, y], i) => (i ? ctx.lineTo(x * k, y * k) : ctx.moveTo(x * k, y * k)));
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  // Boyası fotoğrafta görünmeyen kollarda (parlak beton) şerit ayırıcıları, o koldaki araçların
+  // gerçekte izlediği şeritlerden (geometri.json): yanal merkezlerin orta noktaları, kesikli.
+  for (const kol of S.olculen_serit_kollari || []) {
+    const g = AG.olculen[kol], e = g.e, n = g.n;
+    for (const taraf of ['gelen', 'giden']) {
+      const m = [...g[taraf].merkez].sort((a, b) => a - b);
+      for (let i = 0; i + 1 < m.length; i++) {
+        const s = (m[i] + m[i + 1]) / 2;
+        const a = [e[0] * (g.durma_m + 1) + n[0] * s, e[1] * (g.durma_m + 1) + n[1] * s];
+        const b = [e[0] * 75 + n[0] * s, e[1] * 75 + n[1] * s];
+        kesikli(ctx, gr, a, b, 0.15, '#d8dee499');
+      }
+    }
+  }
 }
 
 // Şerit okları yerde çizilir (perspektifle birlikte döner).

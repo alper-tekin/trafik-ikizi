@@ -32,7 +32,7 @@ recommendation + evidence ──► automatic verifier (re-simulates, checks eve
                                                   re-tests on 10 seeds the agent never saw)
 ```
 
-The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1 tracks, the ground-truth checks, the agent's tool calls with its verified answer, and the current and recommended plans running next to each other in the twin. Every panel is drawn from the camera's own angle on the real road: the video with the cars removed (per-pixel median over 240 frames), projected through the camera calibration. A different video lines up the same way through its own calibration.
+The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1 tracks, the ground-truth checks, the agent's tool calls with its verified answer, and the current and recommended plans running next to each other in the twin. Every panel is drawn from the camera's own angle, projected through the camera calibration, so a different video lines up the same way through its own calibration. The road itself is our own vector drawing of the real geometry: SAM 3.1 segments the video with the cars removed (per-pixel median over 240 frames) into road, sidewalks, crosswalk, lane lines, yellow lines, arrows, grass, trees and buildings, and those masks become the polygons we draw. Where the paint is too faint to see (south and east arms, under 10% line coverage), lane dividers come from where the tracked cars actually drove.
 
 ## Every stage is checked against ground truth
 
@@ -104,6 +104,7 @@ Different runs of the agent find different plans. Every run is saved with its fu
 - **Driver parameters did not matter. Structure did.** Tuning SUMO's driver model changed the error by under 2%. The big errors were the phase order (lead-lag left) and the lane layout.
 - **The first twin was a square.** It had four perpendicular arms, so the animation did not match the camera view: the west arm is actually skewed by about 18°, and the stop lines sit at different distances. Arm directions, lane counts and widths, and stop lines are now measured from the tracked cars, and the network is rebuilt from those measurements. The cross street turned out to have 3 approach lanes, not 2.
 - **A plot exposed an alignment bug.** The queue profiles in the demo showed the twin shifted in time. The cause was the simulation's 120 s warm-up, which shifts the cycle. With the correct alignment, the error was 4.2 vehicles, not the 3.9 I had reported earlier in the commit history. On the measured geometry it is 4.3.
+- **SAM masks needed a decoder.** The masks come back range-coded, and installing Meta's parser package was not possible in this environment, so `sam_maske.py` ports its one_bit decoder to Python. Faint lane paint on bright concrete was missed by a single prompt; contrast-enhanced, upscaled tiles recover more of it.
 - **SUMO cannot open paths with non-ASCII characters** (my project folder is under `Masaüstü`), so SUMO runs from inside its working folder with `SUMO_HOME` unset.
 - **Long agent loops lost server-side state** (`previous_response_id` expired mid-run). The loop now keeps history on the client and replays encrypted reasoning.
 
@@ -111,7 +112,7 @@ Different runs of the agent find different plans. Every run is saved with its fu
 
 - One intersection, one 18.7-minute morning period from 2005. The gains are simulated, not a field trial.
 - The twin's queue-profile error (4.3 vehicles) is still above the 2.7 measurement floor.
-- Toward the edges of the frame the camera calibration bends straight lanes slightly, so measured lanes fan out by a few degrees on the south and east arms. The demo therefore uses the real road photo as its background instead of drawing lanes.
+- Toward the edges of the frame the camera calibration bends straight lanes slightly, so lanes measured from tracks fan out by a few degrees on the south and east arms. The road and lane lines in the demo come from SAM 3.1 segments of the image itself, which do not have this error; only the faint-paint arms use track-measured dividers.
 - Pedestrians are treated as timing constraints only. They are a few pixels tall in this video and are not detected.
 - The cross-street green is the weakest recovered window (25 s vs 39 s in ground truth), because the side street has few vehicles in view.
 - Small movements (under 40 vehicles) have count errors of 10 to 25%.
@@ -139,6 +140,7 @@ PYTHONPATH=src .venv/Scripts/python scripts/sim_kalibre.py
 PYTHONPATH=src .venv/Scripts/python scripts/ajan_calistir.py
 PYTHONPATH=src .venv/Scripts/python scripts/video_katman.py
 .venv/Scripts/python scripts/arka_plan.py
+PYTHONPATH=src .venv/Scripts/python scripts/sahne_katmanlari.py
 PYTHONPATH=src .venv/Scripts/python scripts/arayuz_verisi.py
 ```
 
@@ -153,6 +155,7 @@ Start the demo (it replays the recorded agent run, so it uses no API credits). S
 ```
 src/trafik/
   sam.py          SAM 3.1 detection through Meta Model API
+  sam_maske.py    decoder for SAM 3.1 one_bit masks (Python port of Meta's mask codec)
   takip.py        tracking in ground coordinates (Hungarian matching, track stitching)
   akis.py         entry/exit arm → NGSIM direction and movement codes
   geometri.py     arm directions, lanes and stop lines measured from tracks

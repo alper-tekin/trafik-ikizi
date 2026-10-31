@@ -93,6 +93,18 @@ def kavsak_cokgeni(g: dict) -> list:
     return [list(map(float, q)) for q in alt[:-1] + ust[:-1]]
 
 
+def goruntu_donusumu() -> np.ndarray:
+    """Kavşak merkezli metre (u kuzey, w doğu) -> video pikseli homografisi (kamera kalibrasyonundan)."""
+    from trafik.akis import DOGU, KUZEY, MERKEZ
+
+    H_px2saha = np.load("data/kalibrasyon_kamera2.npy")
+    T = np.array([[KUZEY[0] / olcum.FT, DOGU[0] / olcum.FT, MERKEZ[0]],
+                  [KUZEY[1] / olcum.FT, DOGU[1] / olcum.FT, MERKEZ[1]],
+                  [0.0, 0.0, 1.0]])
+    G = np.linalg.inv(H_px2saha) @ T
+    return G / G[2, 2]
+
+
 def kaydet(g: dict, yol: str = "data/geometri.json") -> None:
     g = {**g, "kavsak": kavsak_cokgeni(g)}
     json.dump(g, open(yol, "w", encoding="utf-8"), indent=2)

@@ -93,7 +93,7 @@
     <div class="card twin"><canvas id="bev"></canvas>
       <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
         <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span>
-        <span>· road: the video itself with cars removed (per-pixel median)</span></div>
+        <span>· road, lanes and markings segmented by SAM 3.1 from the video with cars removed</span></div>
     </div>
   </div>
 </section>
@@ -138,7 +138,7 @@
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
   <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
-     Drawn on the real road: the video with cars removed, from the same camera angle. The simulation network was built from measurements of the tracked cars: arm directions (the west arm is skewed about 18 degrees), lane counts and widths, and stop line positions. Cars with lit brake lights are stopped.</p>
+     Drawn from the same camera angle as the video. The road, sidewalks, crosswalk, lane lines and arrows are SAM 3.1 segments of the video with the cars removed; where the paint is too faint to see (the south and east arms), lane dividers come from where the tracked cars actually drove. The simulation network was built from measurements of the tracked cars: arm directions (the west arm is skewed about 18 degrees), lane counts and widths, and stop line positions. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
       <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>
@@ -193,8 +193,8 @@ async function load() {
   // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
   [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', 'sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
-  // Araçsız yol fotoğrafı (scripts/arka_plan.py): çizimlerin zemini
-  window.ARKA_PLAN = await new Promise(ok => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => ok(null); im.src = '/static/arka_plan.jpg'; });
+  // Yol katmanları: araçsız yol fotoğrafından SAM 3.1 ile (scripts/sahne_katmanlari.py)
+  window.SAHNE = await veri('sahne').catch(() => null);
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
