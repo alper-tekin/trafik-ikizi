@@ -1,8 +1,9 @@
 """Kavşak 2'nin SUMO modelini videodan çıkarılan veriyle kurar.
 
   - Ağ: kolların yönü, şerit sayısı/genişliği/yanal yeri, durma çizgileri ve
-    kavşak alanı videodaki izlerden ölçülür (geometri.py, data/geometri.json).
-    Kavşak kare değil: batı kolu ~18° eğik, durma çizgileri 16-20 m arasında.
+    kavşak alanı araçsız yol fotoğrafındaki boyadan ölçülür (scripts/geometri_fotodan.py,
+    data/geometri.json). Kavşak kare değil: kollar 4°/−177°/96°/−84°, şerit genişlikleri
+    2,5-4 m, durma çizgileri 17-22 m arasında, güney kolunda boyalı orta refüj var.
   - Talep: video penceresindeki yön x hareket sayımları -> araç/saat.
   - Sinyal: döngü ve yeşil süreleri data/sinyal_plani.json'dan; sarı 3 s,
     tüm-kırmızı 1 s. Ara sokağın yeşili döngünün kalanıdır.

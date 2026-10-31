@@ -93,7 +93,7 @@
     <div class="card twin"><canvas id="bev"></canvas>
       <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
         <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span>
-        <span>· lane layout measured from the tracked cars</span></div>
+        <span>· lanes measured from the road paint in the video</span></div>
     </div>
   </div>
 </section>
@@ -138,7 +138,7 @@
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
   <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
-     A schematic framed like the video: every road sits where it is on screen, at the same angle. The simulation network was built from measurements of the tracked cars: arm directions (the west arm is skewed about 18 degrees), lane counts and widths, and stop line positions. Cars with lit brake lights are stopped.</p>
+     Drawn from the camera's own angle, so every lane sits on the painted lane in the video. The simulation network was built from the road paint in the empty-road image (per-pixel median of the video): every lane line, edge, yellow line and stop line was located in the image and converted to metres through the camera calibration. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
       <div class="twinhead"><h4 id="simAh">Current plan</h4><span class="pill" id="simAphase"></span></div>

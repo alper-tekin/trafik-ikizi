@@ -121,6 +121,11 @@ def main() -> None:
     q_sumo = olcum.kuyruk_profili(calistir(cfg), C, sim_faz0())
 
     ajan = son_ajan_kosusu()
+    # Kayıttaki doğrulama, koşunun yapıldığı ağa aittir; ikiz ağı sonradan değiştiyse (ör. geometri
+    # boyadan yeniden ölçüldü) önerilen plan bugünkü ikizde yeniden doğrulanır. Kayıt dosyası değişmez.
+    from trafik.ajan import Ortam, dogrula
+    ajan["dogrulama_kayit"] = ajan["dogrulama"]
+    ajan["dogrulama"] = dogrula(ajan, Ortam())
     onerilen = {k: float(v) for k, v in ajan["cevap"]["recommended_plan"].items()}
     sim_onerilen = oynatma(onerilen, sayim, surucu, "arayuz_onerilen")
 
@@ -157,7 +162,7 @@ def main() -> None:
         "kamera": json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8")),
         "mevcut_plan": mevcut,
         "bekleme": bekleme,
-        "ajan": {k: ajan[k] for k in ("soru", "model", "adimlar", "cevap", "dogrulama")},
+        "ajan": {k: ajan[k] for k in ("soru", "model", "adimlar", "cevap", "dogrulama", "dogrulama_kayit")},
     }
     yaz("ozet.json", ozet)
 

@@ -1,11 +1,11 @@
 // Kavşak çizimi: 1. bölümdeki kuşbakışı (videodaki gerçek izler) ve 4. bölümdeki
 // ikiz karşılaştırması aynı motorla çizilir.
 //
-// Çizim videonun kadrajı ve açısıyla yapılır ama perspektifsizdir: kalibrasyon homografisine
-// (AG.goruntu.G, yer -> video pikseli) kavşak çevresinde en iyi oturan afin dönüşüm kullanılır.
-// Böylece yollar videodaki yerinde ve eğiminde durur, çizgiler yine düz ve paraleldir. Başka
-// bir videonun kalibrasyonuyla çizim kendiliğinden ona hizalanır. Yollar ve şeritler ölçülen
-// geometriden kurulan SUMO ağından (sim_ag.json) gelir.
+// Çizim videonun kadrajı ve açısıyla yapılır: yerdeki her nokta (u kuzey, w doğu, metre)
+// kalibrasyon homografisiyle (AG.goruntu.G) video pikseline yansıtılır. Yollar ve şeritler,
+// araçsız yol fotoğrafındaki boyadan ölçülen geometriyle kurulan SUMO ağından (sim_ag.json)
+// gelir; böylece şeritler ve kolların kaçıklığı videodakiyle birebir örtüşür. Başka bir
+// videonun kalibrasyonuyla çizim kendiliğinden ona hizalanır.
 //
 // Kullandığı küreseller (index.html): $, OZET, BEV, SIM_A, SIM_B, AG, Chart.
 
@@ -24,35 +24,19 @@ function phaseColor(ad) {
 }
 
 // ---------------------------------------------------------------- görünüm
-// Homografiye ağırlıklı en küçük kareler afin uyumu: kadraja düşen yer noktaları, merkeze
-// yakın olanlar daha ağır. Sonuç [[a, b, c], [d, e, f]]: x = a·u + b·w + c (video pikseli).
-let AFIN = null;
-function afinUyum() {
-  const G = AG.goruntu.G, gw = AG.goruntu.genislik, gh = AG.goruntu.yukseklik;
-  const N = [[0, 0, 0], [0, 0, 0], [0, 0, 0]], bx = [0, 0, 0], by = [0, 0, 0];
-  for (let u = -80; u <= 80; u += 4) for (let w = -80; w <= 80; w += 4) {
-    const z = G[2][0] * u + G[2][1] * w + G[2][2];
-    if (z <= 0) continue;
-    const x = (G[0][0] * u + G[0][1] * w + G[0][2]) / z, y = (G[1][0] * u + G[1][1] * w + G[1][2]) / z;
-    if (x < 0 || x > gw || y < 0 || y > gh) continue;
-    const q = 1 / (1 + (u * u + w * w) / 900), v = [u, w, 1];
-    for (let i = 0; i < 3; i++) { bx[i] += q * v[i] * x; by[i] += q * v[i] * y; for (let j = 0; j < 3; j++) N[i][j] += q * v[i] * v[j]; }
-  }
-  const coz = b => {  // 3x3 Cramer
-    const d = M => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
-    const D = d(N);
-    return [0, 1, 2].map(k => d(N.map((r, i) => r.map((x, j) => (j === k ? b[i] : x)))) / D);
-  };
-  return [coz(bx), coz(by)];
-}
-
-// W piksel genişliğindeki tuval için yer -> ekran: videonun kadrajında, perspektifsiz.
+// W piksel genişliğindeki tuval için yer -> ekran (video kadrajı, tam homografi).
 function gorunum(W) {
-  const g = AG.goruntu, H = Math.round(W * g.yukseklik / g.genislik), k = W / g.genislik;
-  const [[a, b, c], [d, e, f]] = AFIN || (AFIN = afinUyum());
-  const P = (u, w) => [(a * u + b * w + c) * k, (d * u + e * w + f) * k];
-  const S = Math.sqrt(Math.abs(a * e - b * d)) * k;  // ortalama piksel/metre
-  return { W, H, P, S, olcek: () => S };
+  const g = AG.goruntu, G = g.G, k = W / g.genislik, H = Math.round(g.yukseklik * k);
+  const P = (u, w) => {
+    const z = G[2][0] * u + G[2][1] * w + G[2][2];
+    return [(G[0][0] * u + G[0][1] * w + G[0][2]) / z * k, (G[1][0] * u + G[1][1] * w + G[1][2]) / z * k];
+  };
+  // yerel ölçek (piksel/metre), metin ve çizgi kalınlıkları için
+  const olcek = (u, w) => {
+    const [x0, y0] = P(u, w), [x1, y1] = P(u + 1, w), [x2, y2] = P(u, w + 1);
+    return (Math.hypot(x1 - x0, y1 - y0) + Math.hypot(x2 - x0, y2 - y0)) / 2;
+  };
+  return { W, H, P, olcek };
 }
 
 function setupCanvas(cv) {
@@ -113,6 +97,17 @@ function networkImage(W) {
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 1.8, '#3a434e'); }  // kaldırım
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 0.05, '#262b32'); }  // asfalt
   yerCokgen(ctx, gr, AG.kavsak, '#262b32');
+  // Gelen ile giden şeritler arasında boşluk varsa (boyalı orta refüj) asfaltla doldur, iki
+  // kenarına sarı çiz. Kenarlar ölçülen geometriden: n kolun solu, gelenin iç kenarı sol_gi.
+  for (const g of Object.values(AG.olculen || {})) {
+    const sol_gi = Math.max(...g.gelen.merkez) + g.gelen.genislik / 2;
+    const sol_gc = Math.min(...g.giden.merkez) - g.giden.genislik / 2;
+    if (sol_gc - sol_gi < 0.8) continue;
+    const yer = (d, s) => [g.e[0] * d + g.n[0] * s, g.e[1] * d + g.n[1] * s], d0 = g.durma_m, d1 = SERIT_KIRP_M;
+    const orta = (sol_gi + sol_gc) / 2;
+    bant(ctx, gr, yer(d0, orta), yer(d1, orta), sol_gc - sol_gi + 0.1, '#262b32');
+    for (const s of [sol_gc - 0.2, sol_gc - 0.4]) bant(ctx, gr, yer(d0, s), yer(d1, s), 0.12, '#e3b341');
+  }
 
   const byEdge = {};
   for (const l of lanes) (byEdge[l.kenar] = byEdge[l.kenar] || []).push(l);
@@ -172,7 +167,7 @@ function yaziVePusula(ctx, gr) {
   ctx.font = `${fs}px system-ui`; ctx.fillStyle = '#8b949e'; ctx.textAlign = 'center';
   // yol adı yolun dışında, yoldan uzağa doğru hizalı yazılır (yola taşmasın)
   const yaz = (t, kol, d) => {
-    const g = AG.olculen[kol], ic = (x, y) => x > fs && x < gr.W - fs && y > fs * 4.2 && y < gr.H - fs * 4;  // bekleme etiketlerinin şeridi dışında
+    const g = AG.olculen[kol], ic = (x, y) => x > fs && x < gr.W - fs && y > fs * 6.4 && y < gr.H - fs * 4;  // bekleme etiketlerinin şeridi dışında
     while (d > 20 && !ic(...gr.P(...yolKenari(kol, d, -1, 2)))) d -= 2;  // kadraja girene dek merkeze yaklaş
     const [x, y] = gr.P(...yolKenari(kol, d, -1, 2)), [xm] = gr.P(g.e[0] * d, g.e[1] * d);
     ctx.textAlign = Math.abs(x - xm) < fs ? 'center' : x > xm ? 'left' : 'right';
