@@ -141,6 +141,22 @@ def faz_plani(yesil: dict[str, float], dongu: float) -> list[tuple[float, dict]]
     ]
 
 
+def faz_plani_surelerden(sol_onde: float, guney_onde: float, ortak: float, ara_sokak: float) -> list:
+    """Ajanın önerdiği yeşil sürelerinden faz listesi; 0 s'lik fazlar atlanır."""
+    r = dict.fromkeys(["gd", "kd", "ks", "gs", "db"], "r")
+    fazlar = [
+        (sol_onde, {**r, "ks": "G"}),
+        (guney_onde, {**r, "ks": "G", "gd": "G"}),
+        (ortak, {**r, "gd": "G", "kd": "G", "ks": "g", "gs": "g"}),
+        (SARI, {**r, "gd": "y", "kd": "y", "ks": "y", "gs": "y"}),
+        (TUM_KIRMIZI, r),
+        (ara_sokak, {**r, "db": "G"}),
+        (SARI, {**r, "db": "y"}),
+        (TUM_KIRMIZI, r),
+    ]
+    return [(s, d) for s, d in fazlar if s > 0]
+
+
 def sinyal_yaz(klasor: Path, ag: Path, fazlar: list[tuple[float, dict]]) -> Path:
     baglantilar = _baglanti_hareketleri(ag)
 
