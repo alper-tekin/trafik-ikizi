@@ -12,7 +12,7 @@ I lose a lot of time stuck at traffic lights. Retiming a signal is cheap compare
 
 ```
 fixed-camera video
-   │  SAM 3.1 (Meta Model API): "car" on every 2nd frame, 5,610 frames
+   │  SAM 3.1 (Meta Model API): "vehicle" on every 2nd frame, 5,610 frames
    ▼
 detections ──► camera calibration solved from the data (no hand-placed points)
    │
@@ -42,15 +42,16 @@ The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, 
 |---|---|---|
 | Camera calibration (from data) | median position error 0.62 m on single-frame detections | NGSIM's own stated accuracy is about 0.6 m (X) and 1.2 m (Y) |
 | Video/trajectory time offset | −0.3 s, found automatically | — |
-| Tracking | 85% of ground-truth vehicles tracked; median error 0.81 m, p90 2.6 m | — |
-| Track identity | median vehicle spends 99.7% of its visible time on one track; 79% of vehicles stay ≥90% on one track | — |
-| Turning counts, 18.7 min | 1,120 vehicles | 1,149 (−2.5%) |
-| Main movements | NB through 294 · NB right 101 · SB through 388 · SB left 159 | 305 · 98 · 392 · 156 (all within 4%) |
+| Tracking | 90% of ground-truth vehicle positions tracked (94% for buses and trucks); median error 0.84 m, p90 2.6 m | — |
+| Track identity | median vehicle spends its whole visible time on one track; 81% of vehicles stay ≥90% on one track | — |
+| Buses and trucks | 47 tracks longer than 20 ft on the ground, simulated as 10 m vehicles | 47 large vehicles in NGSIM |
+| Turning counts, 18.7 min | 1,186 vehicles | 1,149 (+3.2%) |
+| Main movements | NB through 310 · NB right 105 · SB through 414 · SB left 164 | 305 · 98 · 392 · 156 (all within 7.1%) |
 | Signal cycle | 101 s | 101 s |
-| Green windows | SB left 84+35 s · SB through 99+49 s · NB through 12+31 s | 84+35 · 99+48 · 11+32 (within 1 s) |
+| Green windows | SB left 84+35 s · SB through 99+48 s · NB through 11+32 s | 84+35 · 99+48 · 11+32 (exact) |
 | Road geometry | measured from the road paint: arms within 6° of square (modelled as +); 5/5/3/3 approach lanes, 2.5 to 3.6 m wide; stop lines 17 to 22 m from the centre | lanes and stop lines overlay the paint in the video |
 | Lane turns | counted per lane from the video, e.g. east arm 42 right / 9 through / 4 left by lane | painted arrows on the east arm say right / through / left |
-| Twin queue profile error | 4.3 vehicles (RMSE across the cycle) | floor: the video itself is 2.7 off |
+| Twin queue profile error | 4.5 vehicles (RMSE across the cycle) | floor: the video itself is 2.4 off |
 
 The signal plan was recovered without the signal logs. The cycle length comes from the autocorrelation of vehicles crossing the intersection, and each green window comes from where crossings cluster within the cycle. This is how the twin learned that the intersection runs a **lead-lag left**: southbound left turns go first, then southbound through, then both directions.
 
@@ -67,36 +68,36 @@ The signal plan was recovered without the signal logs. The cycle length comes fr
 
 The instructions require that every number comes from a tool result, that per-approach delay is reported along with the average, and that differences inside the seed-to-seed spread are treated as noise. Constraints come from the real street: the cross-street green must be at least 30 s so that pedestrians can cross the ~30 m of Lankershim, and the cycle must be 60 to 150 s.
 
-**Result of the recorded run (16 tool calls, 11 plans tested):**
+**Result of the recorded run (15 tool calls, 10 plans tested):**
 
 | Plan (southbound-only left / southbound lead / shared / cross street) | Avg delay per vehicle |
 |---|---|
-| Current plan, recovered from video (15 / 14 / 31 / 33 s, cycle 101 s) | 23.9 s |
-| Webster textbook plan (15 / 0 / 26 / 30 s) | 21.5 s |
-| **Agent's recommendation (8 / 0 / 26 / 30 s, cycle 72 s)** | **19.8 s (−17%)** |
+| Current plan, recovered from video (15 / 14 / 31 / 33 s, cycle 101 s) | 24.1 s |
+| Webster textbook plan (14 / 0 / 27 / 30 s) | 21.9 s |
+| **Agent's recommendation (10 / 0 / 30 / 30 s, cycle 78 s)** | **20.3 s (−16%)** |
 
-The measured geometry has two left-turn bays for southbound traffic, so the southbound left clears faster than a single bay would allow. The agent started from Webster, dropped the southbound-through lead phase, cut the protected left to 8 s, and shortened the cycle from 101 s to 72 s. It also found the edge: a 5 s or 7 s left makes the southbound left queue spill over. Delay changes by approach: from west −13.0 s, from east −7.0 s, from south −9.5 s, from north +1.2 s. The agent reported the southbound cost itself, in its caveats; the verifier flags it too. The textbook Webster plan already beats the current plan here; the agent's search beats Webster by another 1.7 s.
+The measured geometry has two left-turn bays for southbound traffic, so the southbound left clears faster than a single bay would allow. The agent started from Webster, dropped the southbound-through lead phase, cut the protected left to 10 s, gave the shared green 30 s, and shortened the cycle from 101 s to 78 s. No approach gets worse: from west −9.9 s, from east −2.3 s, from south −8.5 s, from north −0.1 s. The textbook Webster plan already beats the current plan here; the agent's search beats Webster by another 1.6 s.
 
-**Average wait per car, by approach** (time stopped, whole simulation, 10 random seeds the agent never saw):
+**Average wait per vehicle, by approach** (time stopped, whole simulation, 10 random seeds the agent never saw):
 
 | Approach | Current plan | Recommended | Change |
 |---|---|---|---|
-| From west | 22.5 s | 11.0 s | −11.5 s |
-| From east | 12.6 s | 7.1 s | −5.5 s |
-| From south | 17.8 s | 9.9 s | −7.9 s |
-| From north | 13.6 s | 13.3 s | −0.3 s |
-| All cars | 15.7 s | 11.6 s | −4.1 s |
+| From west | 21.7 s | 13.1 s | −8.6 s |
+| From east | 9.1 s | 6.7 s | −2.4 s |
+| From south | 17.6 s | 10.2 s | −7.4 s |
+| From north | 14.0 s | 13.3 s | −0.7 s |
+| All vehicles | 15.5 s | 11.8 s | −3.7 s |
 
-The same wait measure, restricted to the 75 m the camera sees, was also computed from the video, from ground truth and from the twin. From north the three agree within 1.5 s (15.0 / 15.3 / 13.8 s) and from east within 4.6 s (17.9 / 16.3 / 13.3 s). From south the video reads low, because the queue runs off the bottom of the frame. From west the ground truth reads low, because NGSIM starts tracking side-street cars only near the intersection.
+The same wait measure, restricted to the 75 m the camera sees, was also computed from the video, from ground truth and from the twin. From north the three agree within 1 s (15.2 / 15.3 / 14.3 s). From east the twin reads low (9.9 s against 18.5 s in the video and 16.3 s in ground truth), on few vehicles. From south the video reads low, because the queue runs off the bottom of the frame. From west the ground truth reads low, because NGSIM starts tracking side-street cars only near the intersection.
 
 **Verifier** (`dogrula` in `ajan.py`). The agent's answer is never trusted on its own word. The verifier checks that:
 - the recommended plan was actually simulated by the agent ✓
 - the reported baseline and recommended delays match a fresh re-simulation ✓
 - pedestrian minimums and cycle bounds hold ✓
-- per-approach delay changes: three approaches gain, southbound loses 1.2 s, which the agent disclosed (shown as a flagged line in the demo)
-- the gain holds on **10 random seeds the agent never saw**: 24.0 s → 19.7 s, with non-overlapping ranges (23.5–24.3 vs 19.2–19.9) ✓
+- per-approach delay changes, which is how the claim "no approach gets worse" was checked ✓
+- the gain holds on **10 random seeds the agent never saw**: 24.3 s → 20.2 s, with non-overlapping ranges (23.8–24.7 vs 19.8–20.7) ✓
 
-Different runs of the agent find different plans. Every run is saved with its full tool trace in `data/ajan/`. On the earlier, idealised square network (before the road geometry was measured) the agent's best plan gained only 9%, because that network had a single southbound left bay. The geometry of the twin changes the answer, which is why it is measured from the video rather than assumed. The previous run, on the twin before lane turns were counted from the video, recommended 10 / 0 / 31 / 30 s (−20%); on the current twin that plan scores 19.2 s, slightly better than this run's 19.8 s, so the agent's search is good but not exhaustive.
+Different runs of the agent find different plans. Every run is saved with its full tool trace in `data/ajan/`. On the earlier, idealised square network (before the road geometry was measured) the agent's best plan gained only 9%, because that network had a single southbound left bay. The geometry of the twin changes the answer, which is why it is measured from the video rather than assumed. The twin has since gained lane turns counted from the video and buses and trucks; the agent is re-run whenever the twin changes, and the verifier always checks the run against the twin as it is now.
 
 ## What went wrong along the way (and what fixed it)
 
@@ -104,7 +105,8 @@ Different runs of the agent find different plans. Every run is saved with its fu
 - **Right turns came out as zero.** Right-turning vehicles cut the corner and never come within 40 ft of the intersection centre, which my first filter required.
 - **Driver parameters did not matter. Structure did.** Tuning SUMO's driver model changed the error by under 2%. The big errors were the phase order (lead-lag left) and the lane layout.
 - **The first twin was a square.** It had four perpendicular arms, so the animation did not match the camera view. Measuring arm directions, lanes and stop lines from the tracked cars fixed the lane counts (the cross street has 3 approach lanes, not 2) but still did not land on the paint: it assumed one straight axis per arm with evenly spaced lanes, and it read the west arm as skewed by 18°. Laid over the video, the lanes missed the painted lines. The geometry is now read from the paint itself, which puts the west arm at −84° (almost square after all) and gives each arm its real lane widths. One lane was easy to miss: on the east arm the outgoing side has a curved right-turn slip lane next to its two lanes. Without it, left turns and right turns squeezed into two lanes and the cross street jammed (60 s waits against 11 s in the video).
-- **A plot exposed an alignment bug.** The queue profiles in the demo showed the twin shifted in time. The cause was the simulation's 120 s warm-up, which shifts the cycle. With the correct alignment, the error was 4.2 vehicles, not the 3.9 I had reported earlier in the commit history. On the measured geometry it is 4.3.
+- **A plot exposed an alignment bug.** The queue profiles in the demo showed the twin shifted in time. The cause was the simulation's 120 s warm-up, which shifts the cycle. With the correct alignment, the error was 4.2 vehicles, not the 3.9 I had reported earlier in the commit history. On the current twin it is 4.5.
+- **Buses and trucks were half missing.** The first detection pass asked SAM 3.1 for "car", and it caught only half of the large vehicles. On 20 test frames "car" found 10 of 26 buses and trucks, "bus" 7, "truck" 13 (and it also boxed ordinary cars), "vehicle" 25. Re-running every frame with "vehicle" raised large-vehicle coverage from 49% to 94% and overall coverage from 85% to 90%. Large vehicles are told apart by the length of their box on the ground and simulated as 10 m vehicles.
 - **SAM masks needed a decoder.** The masks come back range-coded, and installing Meta's parser package was not possible in this environment, so `sam_maske.py` ports its one_bit decoder to Python. Faint lane paint on bright concrete was missed by a single prompt; contrast-enhanced, upscaled tiles recover more of it.
 - **SUMO cannot open paths with non-ASCII characters** (my project folder is under `Masaüstü`), so SUMO runs from inside its working folder with `SUMO_HOME` unset.
 - **Long agent loops lost server-side state** (`previous_response_id` expired mid-run). The loop now keeps history on the client and replays encrypted reasoning.
@@ -112,7 +114,7 @@ Different runs of the agent find different plans. Every run is saved with its fu
 ## Limitations
 
 - One intersection, one 18.7-minute morning period from 2005. The gains are simulated, not a field trial.
-- The twin's queue-profile error (4.3 vehicles) is still above the 2.7 measurement floor.
+- The twin's queue-profile error (4.5 vehicles) is still above the 2.4 measurement floor.
 - Lane boundaries were read from brightness peaks across each arm and matched to lines by hand, at two cross-sections per arm. Lanes are modelled as straight and parallel, and arms as exactly square (they are within 6°). The curved slip lane on the east arm is modelled as a straight lane. Lane turns on the cross street rest on few cars (57 east, 71 west).
 - Pedestrians are treated as timing constraints only. They are a few pixels tall in this video and are not detected.
 - The cross-street green is the weakest recovered window (25 s vs 39 s in ground truth), because the side street has few vehicles in view.

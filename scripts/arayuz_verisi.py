@@ -2,7 +2,7 @@
 
   ozet.json         doğrulama tabloları ve grafikler: sayımlar, sinyal pencereleri,
                     kuyruk profilleri (video / NGSIM / SUMO), takip ve kalibrasyon ölçüleri
-  kusbakisi.json    5 fps izler, kavşak merkezli metre (u kuzey, w doğu)
+  kusbakisi.json    5 fps izler, kavşak merkezli metre (u kuzey, w doğu), otobüs/kamyon işaretli
   sim_mevcut.json   SUMO oynatması, videodan çıkarılan plan
   sim_onerilen.json SUMO oynatması, son ajan koşusunun önerisi
 
@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 
 from trafik import olcum
-from trafik.akis import yerel
+from trafik.akis import BUYUK_FT, talep_sayimlari, yerel
 from trafik.simule import calistir
 from trafik.sumo_ag import faz_plani_surelerden, kur, sim_faz0
 
@@ -107,7 +107,7 @@ def main() -> None:
 
     akis = pd.read_parquet("data/akis_izler.parquet")
     izler = pd.read_parquet("data/izler_kamera2.parquet")
-    sayim = akis.groupby(["yon", "hareket"]).size().to_dict()
+    sayim = talep_sayimlari(akis)
     video = olcum.noktalar_izden(izler, akis)
     ngsim = olcum.noktalar_ngsimden(pd.read_parquet("data/ngsim/kavsak2.parquet"), ofset, SURE_S)
 
@@ -171,8 +171,10 @@ def main() -> None:
     k = izler.assign(u=uw[:, 0].round(1), w=uw[:, 1].round(1)).merge(
         akis[["iz", "yon", "hareket"]], on="iz", how="left")
     k = k.fillna({"yon": 0, "hareket": 0})
-    kareler = {int(no): [[int(a), u, w, int(yn), int(h)] for a, u, w, yn, h in
-                         g[["iz", "u", "w", "yon", "hareket"]].itertuples(index=False)]
+    # son alan: otobüs/kamyon mu (izin kutu boyu medyanı, akis.BUYUK_FT)
+    k = k.assign(buyuk=k.iz.map(izler.groupby("iz").boy.median() > BUYUK_FT).astype(int))
+    kareler = {int(no): [[int(a), u, w, int(yn), int(h), int(b)] for a, u, w, yn, h, b in
+                         g[["iz", "u", "w", "yon", "hareket", "buyuk"]].itertuples(index=False)]
                for no, g in k.groupby("kare")}
     yaz("kusbakisi.json", {"fps": 5, "kareler": kareler})
     yaz("sim_mevcut.json", sim_mevcut)

@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 
 from trafik import olcum
+from trafik.akis import talep_sayimlari
 from trafik.simule import calistir
 from trafik.sumo_ag import kur, plan_videodan, sim_faz0
 
@@ -37,7 +38,7 @@ def main() -> None:
     ofset = json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8"))["ofset_s"]
 
     akis = pd.read_parquet("data/akis_izler.parquet")
-    sayim = akis.groupby(["yon", "hareket"]).size().to_dict()
+    sayim = talep_sayimlari(akis)
     video = olcum.kuyruk_profili(
         olcum.noktalar_izden(pd.read_parquet("data/izler_kamera2.parquet"), akis), C, faz0)
     ngsim = olcum.kuyruk_profili(

@@ -12,7 +12,7 @@ import json
 
 import pandas as pd
 
-from trafik.akis import HAREKET_ADI, siniflandir
+from trafik.akis import BUYUK_FT, HAREKET_ADI, siniflandir
 
 YON_ADI = {1: "doğuya", 2: "kuzeye", 3: "batıya", 4: "güneye"}
 VIDEO_SURE_S = 1122.0
@@ -20,8 +20,12 @@ VIDEO_SURE_S = 1122.0
 
 def main() -> None:
     ofset = json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8"))["ofset_s"]
-    s = siniflandir(pd.read_parquet("data/izler_kamera2.parquet"))
+    izler = pd.read_parquet("data/izler_kamera2.parquet")
+    s = siniflandir(izler)
+    boy = izler.groupby("iz").boy.median()
+    s = s.assign(boy_ft=s.iz.map(boy).round(1), buyuk=s.iz.map(boy > BUYUK_FT).fillna(False))
     s.to_parquet("data/akis_izler.parquet")
+    print(f"otobüs/kamyon (kutu boyu > {BUYUK_FT:.0f} ft): {int(s.buyuk.sum())} / {len(s)}")
 
     g = pd.read_parquet("data/ngsim/kavsak2.parquet")
     g = g[(g.t >= ofset) & (g.t <= VIDEO_SURE_S + ofset) & (g.int_id == 2)]

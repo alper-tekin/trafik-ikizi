@@ -32,6 +32,15 @@ def sahaya(H_px2saha: np.ndarray, kutular: np.ndarray) -> np.ndarray:
     return cv2.perspectiveTransform(merkez.reshape(-1, 1, 2).astype(np.float64), H_px2saha).reshape(-1, 2)
 
 
+def kutu_boyu(H_px2saha: np.ndarray, kutular: np.ndarray) -> np.ndarray:
+    """Kutunun yerdeki uzun kenarı (ft). Kollar görüntü eksenlerine yakın olduğu için araç
+    kutunun bir kenarı boyunca uzanır; otobüs/kamyonu arabadan ayırmak için kullanılır."""
+    x1, y1, x2, y2 = kutular[:, 0], kutular[:, 1], kutular[:, 2], kutular[:, 3]
+    k = np.stack([np.c_[x1, y1], np.c_[x2, y1], np.c_[x1, y2]], axis=1).astype(np.float64)
+    y = cv2.perspectiveTransform(k.reshape(-1, 1, 2), H_px2saha).reshape(-1, 3, 2)
+    return np.maximum(np.linalg.norm(y[:, 1] - y[:, 0], axis=1), np.linalg.norm(y[:, 2] - y[:, 0], axis=1))
+
+
 def _esle(izler, indeksler, tahmin, noktalar, bos_nokta, kapi_ft):
     """Verilen izleri boştaki noktalarla eşler; (iz indeksi, nokta indeksi) listesi döner."""
     if not indeksler or not bos_nokta:
@@ -56,7 +65,8 @@ def takip_et(
 ) -> pd.DataFrame:
     """kareler: (kare_no, kutular[N,4+]) listesi, kare sırasına göre.
 
-    Dönüş: iz, kare, x, y (saha ft) satırları; kısa ömürlü izler atılır.
+    Dönüş: iz, kare, x, y (saha ft), boy (kutunun yerdeki uzun kenarı, ft) satırları;
+    kısa ömürlü izler atılır.
     """
     izler: list[Iz] = []
     biten: list[Iz] = []
@@ -66,6 +76,7 @@ def takip_et(
         dt = 0.0 if onceki is None else (kare_no - onceki) / fps
         onceki = kare_no
         noktalar = sahaya(H_px2saha, kutular) if len(kutular) else np.empty((0, 2))
+        boylar = kutu_boyu(H_px2saha, kutular) if len(kutular) else np.empty(0)
         tahmin = np.array([iz.konum + iz.hiz * dt for iz in izler]).reshape(-1, 2)
 
         bos_nokta = set(range(len(noktalar)))
@@ -84,7 +95,7 @@ def takip_et(
             iz.konum = noktalar[j]
             iz.kayip = 0
             iz.gorulme += 1
-            iz.gecmis.append((kare_no, *iz.konum))
+            iz.gecmis.append((kare_no, *iz.konum, boylar[j]))
             eslenen_iz.add(i)
 
         kalan = []
@@ -98,11 +109,11 @@ def takip_et(
 
         for j in sorted(bos_nokta):
             sayac += 1
-            izler.append(Iz(sayac, noktalar[j].copy(), gecmis=[(kare_no, *noktalar[j])]))
+            izler.append(Iz(sayac, noktalar[j].copy(), gecmis=[(kare_no, *noktalar[j], boylar[j])]))
 
     tumu = [iz for iz in biten + izler if iz.gorulme >= en_az_gorulme]
-    satirlar = [(iz.no, k, x, y) for iz in tumu for k, x, y in iz.gecmis]
-    df = pd.DataFrame(satirlar, columns=["iz", "kare", "x", "y"])
+    satirlar = [(iz.no, k, x, y, b) for iz in tumu for k, x, y, b in iz.gecmis]
+    df = pd.DataFrame(satirlar, columns=["iz", "kare", "x", "y", "boy"])
     return birlestir(df, fps, birlestir_kare, birlestir_ft)
 
 

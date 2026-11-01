@@ -36,7 +36,7 @@ def main() -> None:
     for iz, kare, x, y in izler[["iz", "kare", "px", "py"]].itertuples(index=False):
         kare_izleri[kare].append((iz, x, y))
     kutular = {}
-    for s in open("data/tespit/car.jsonl", encoding="utf-8"):
+    for s in open("data/tespit/vehicle.jsonl", encoding="utf-8"):
         d = json.loads(s)
         kutular[d["kare"]] = d["kutular"]
 

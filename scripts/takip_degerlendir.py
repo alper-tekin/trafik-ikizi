@@ -26,7 +26,7 @@ def main() -> None:
     ofset = json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8"))["ofset_s"]
 
     satirlar = sorted(
-        (json.loads(s) for s in open("data/tespit/car.jsonl", encoding="utf-8")),
+        (json.loads(s) for s in open("data/tespit/vehicle.jsonl", encoding="utf-8")),
         key=lambda x: x["kare"],
     )
     kareler = [(x["kare"], np.array(x["kutular"], dtype=float).reshape(-1, 5)[:, :4]) for x in satirlar]

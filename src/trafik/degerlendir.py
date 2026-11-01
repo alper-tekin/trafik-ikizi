@@ -103,6 +103,8 @@ def webster(sayim: dict, doyma_serit_saat: float = 1800.0) -> dict:
     (kuzeye 4 / güneye 3 şerit, büyüğü), ara sokak (2 şerit, büyük kol).
     """
     saat = lambda n: n / SURE_S * 3600  # noqa: E731
+    # otobüs/kamyon 2 binek otomobil eşdeğeri sayılır
+    sayim = {k: sayim.get(k, 0) + 2 * sayim.get((*k, "b"), 0) for k in {a[:2] for a in sayim}}
     y_sol = saat(sayim.get((4, 2), 0)) / (2 * doyma_serit_saat)
     y_ns = max(saat(sayim.get((2, 1), 0) + sayim.get((2, 3), 0)) / (4 * doyma_serit_saat),
                saat(sayim.get((4, 1), 0) + sayim.get((4, 3), 0)) / (3 * doyma_serit_saat))

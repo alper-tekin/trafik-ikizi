@@ -17,6 +17,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from trafik import olcum
+from trafik.akis import talep_sayimlari
 from trafik.degerlendir import KISIT, SURE_S, degerlendir, webster
 from trafik.sumo_ag import plan_videodan
 
@@ -110,7 +111,7 @@ class Ortam:
 
     def __init__(self):
         akis = pd.read_parquet("data/akis_izler.parquet")
-        self.sayim = akis.groupby(["yon", "hareket"]).size().to_dict()
+        self.sayim = talep_sayimlari(akis)
         kal = json.load(open("data/sim_kalibrasyon.json", encoding="utf-8"))
         self.kalibrasyon = kal
         self.surucu = {"tau": kal["en_iyi"]["tau"], "accel": kal["en_iyi"]["accel"]}
@@ -130,10 +131,16 @@ class Ortam:
 
     # --- araçlar ---
     def intersection_summary(self) -> dict:
-        talep = {f"{YON_ADI[y]} {HAREKET_ADI[h]}": round(n / SURE_S * 3600) for (y, h), n in sorted(self.sayim.items())}
+        talep, buyuk = {}, {}
+        for anahtar, n in sorted(self.sayim.items(), key=lambda x: tuple(map(str, x[0]))):
+            ad = f"{YON_ADI[anahtar[0]]} {HAREKET_ADI[anahtar[1]]}"
+            talep[ad] = talep.get(ad, 0) + round(n / SURE_S * 3600)
+            if len(anahtar) > 2:
+                buyuk[ad] = round(n / SURE_S * 3600)
         k = self.kalibrasyon
         return {
             "demand_veh_per_h": talep,
+            "of_which_buses_trucks_veh_per_h": buyuk,
             "current_plan_from_video": {**self.mevcut, "cycle_s": self.dongu},
             "current_plan_simulated": self.dene(self.mevcut),
             "calibration": {

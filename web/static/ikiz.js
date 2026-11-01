@@ -221,16 +221,22 @@ function drawSignals(ctx, gr, state) {
 
 // Sade araç: geldiği kola göre düz renk, koyu camlar, hafif gölge; dururken fren lambası.
 // v: [id, u, w, hız, açı]. onTampon: konum ön tampon mu (SUMO) yoksa aracın ortası mı (video izi).
-function drawCar(ctx, gr, v, renk, onTampon = true) {
+// buyuk: otobüs/kamyon (SUMO akış kimliği "KsB..." ya da videoda kutu boyundan), 10 m.
+function drawCar(ctx, gr, v, renk, onTampon = true, buyuk = /^[KGDB][slr]B/.test(String(v[0]))) {
   const [id, u, w, hiz, aciDer] = v, a = aciDer * Math.PI / 180;  // 0 = kuzey, saat yönünde
-  const fu = Math.cos(a), fw = Math.sin(a), su = -fw, sw = fu, boy = 4.6, en = 1.9;
+  const fu = Math.cos(a), fw = Math.sin(a), su = -fw, sw = fu, boy = buyuk ? 10 : 4.6, en = buyuk ? 2.5 : 1.9;
   const geri = onTampon ? boy / 2 : 0, cu = u - fu * geri, cw = w - fw * geri;
   const p = (i, y) => [cu + fu * i + su * y, cw + fw * i + sw * y];
   const kutu = (i0, i1, y0, y1) => [p(i0, y0), p(i1, y0), p(i1, y1), p(i0, y1)];
   ctx.save(); ctx.translate(1, 1.5); yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), 'rgba(0,0,0,0.4)'); ctx.restore();
   yerCokgen(ctx, gr, kutu(-boy / 2, boy / 2, -en / 2, en / 2), renk || BODY[String(id)[0]] || '#c9d1d9');
-  yerCokgen(ctx, gr, kutu(boy * 0.08, boy * 0.26, -en * 0.38, en * 0.38), 'rgba(13,17,23,0.8)');     // ön cam
-  yerCokgen(ctx, gr, kutu(-boy * 0.36, -boy * 0.24, -en * 0.36, en * 0.36), 'rgba(13,17,23,0.6)');  // arka cam
+  if (buyuk) {  // otobüs/kamyon: ön cam ve tavan boyunca açık şerit
+    yerCokgen(ctx, gr, kutu(boy * 0.40, boy * 0.47, -en * 0.40, en * 0.40), 'rgba(13,17,23,0.8)');
+    yerCokgen(ctx, gr, kutu(-boy * 0.44, boy * 0.34, -en * 0.18, en * 0.18), 'rgba(255,255,255,0.35)');
+  } else {
+    yerCokgen(ctx, gr, kutu(boy * 0.08, boy * 0.26, -en * 0.38, en * 0.38), 'rgba(13,17,23,0.8)');     // ön cam
+    yerCokgen(ctx, gr, kutu(-boy * 0.36, -boy * 0.24, -en * 0.36, en * 0.36), 'rgba(13,17,23,0.6)');  // arka cam
+  }
   if (hiz < 0.5) {
     ctx.save(); ctx.shadowColor = '#ff3b3b'; ctx.shadowBlur = 8;
     yerCokgen(ctx, gr, kutu(-boy / 2 - 0.1, -boy / 2 + 0.25, -en * 0.46, -en * 0.2), '#ff4d4d');
@@ -331,7 +337,7 @@ function bevStart() {
   const kareler = [];
   for (const [k, liste] of Object.entries(BEV.kareler)) {
     const m = new Map();
-    for (const [id, u, w, , h] of liste) m.set(id, [...artiya(u, w), h]);
+    for (const [id, u, w, , h, b] of liste) m.set(id, [...artiya(u, w), h, b]);
     kareler[+k / 2] = m;
   }
   const yon = new Map();  // iz -> son güvenilir açı (duran araç titremesin)
@@ -346,7 +352,7 @@ function bevStart() {
     const du = ileri[0] - geri[0], dw = ileri[1] - geri[1], yol = Math.hypot(du, dw);
     if (yol > 0.6) yon.set(id, Math.atan2(dw, du) * 180 / Math.PI);
     const varsayilan = Math.abs(p[1]) > Math.abs(p[0]) ? (p[1] > 0 ? 270 : 90) : (p[0] > 0 ? 180 : 0);
-    return { u: p[0], w: p[1], h: p[2], hiz: yol / 0.8, aci: yon.get(id) ?? varsayilan };
+    return { u: p[0], w: p[1], h: p[2], buyuk: !!p[3], hiz: yol / 0.8, aci: yon.get(id) ?? varsayilan };
   }
 
   function draw() {
@@ -362,7 +368,7 @@ function bevStart() {
       const a = aracDurumu(i, id);
       if (!a) continue;
       const b = aracDurumu(i + 1, id) || a, da = ((b.aci - a.aci + 540) % 360) - 180;
-      drawCar(ctx, gr, [id, a.u + (b.u - a.u) * k, a.w + (b.w - a.w) * k, a.hiz, a.aci + da * k], MOVE_RENK[a.h], false);
+      drawCar(ctx, gr, [id, a.u + (b.u - a.u) * k, a.w + (b.w - a.w) * k, a.hiz, a.aci + da * k], MOVE_RENK[a.h], false, a.buyuk);
     }
     ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(gr.W / 46)}px system-ui`;
     ctx.fillText(`${simdi.size} tracked · ${faz.ad} · t = ${t.toFixed(1)} s`, gr.W / 40, gr.H - gr.W / 40);

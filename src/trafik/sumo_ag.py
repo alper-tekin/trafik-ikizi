@@ -17,6 +17,7 @@ from pathlib import Path
 import sumolib
 
 SARI, TUM_KIRMIZI = 3, 1
+BUYUK_BOY_M = 10.0  # otobüs/kamyon karışımı (NGSIM büyük araç boy medyanı 29 ft ≈ 9 m, otobüsler 12 m)
 KOL_UZUNLUK_M = 300.0
 YON_KOL = {2: "G", 4: "K", 1: "B", 3: "D"}  # gidiş yönü -> giriş kolu
 HAREKET_HARF = {1: "s", 2: "l", 3: "r"}
@@ -127,19 +128,24 @@ def _ortam() -> dict:
 
 def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float, olcek: float = 1.0,
               surucu: dict | None = None) -> Path:
-    """sayimlar: (yön, hareket) -> araç sayısı (sure_s içinde).
+    """sayimlar: (yön, hareket) -> araba sayısı, (yön, hareket, "b") -> otobüs/kamyon sayısı (sure_s içinde).
     surucu: SUMO vType parametreleri (accel, tau, minGap...) videoya kalibre edilmiş değerler."""
     p = {"length": 4.8, "minGap": 2.0, "accel": 2.0, "decel": 4.5, "sigma": 0.5, "tau": 1.0, **(surucu or {})}
-    ozellik = " ".join(f'{k}="{v}"' for k, v in p.items())
-    satir = ['<routes>', f'  <vType id="oto" {ozellik}/>']
-    for (yon, hareket), n in sorted(sayimlar.items()):
+    # Otobüs/kamyon: BUYUK_BOY_M, daha yavaş hızlanan; sürücü tepki süresi arabalarla aynı.
+    b = {**p, "length": BUYUK_BOY_M, "minGap": 2.5, "accel": min(p["accel"], 1.2), "decel": 4.0}
+    ozellik = lambda q: " ".join(f'{k}="{v}"' for k, v in q.items())  # noqa: E731
+    satir = ['<routes>', f'  <vType id="oto" {ozellik(p)}/>', f'  <vType id="buyuk" {ozellik(b)}/>']
+    for anahtar, n in sorted(sayimlar.items(), key=lambda x: tuple(map(str, x[0]))):
+        yon, hareket, buyuk = anahtar[0], anahtar[1], len(anahtar) > 2
         giris = YON_KOL[yon]
         cikis = CIKIS[(giris, hareket)]
         saatlik = n / sure_s * SAAT * olcek
         if saatlik <= 0:
             continue
+        # akış kimliği: kol + hareket harfi (+ B otobüs/kamyon); arayüz araç türünü buradan okur
         satir.append(
-            f'  <flow id="{giris}{HAREKET_HARF[hareket]}" type="oto" from="{giris}_gir" to="{cikis}_cik" '
+            f'  <flow id="{giris}{HAREKET_HARF[hareket]}{"B" if buyuk else ""}" type="{"buyuk" if buyuk else "oto"}" '
+            f'from="{giris}_gir" to="{cikis}_cik" '
             f'begin="0" end="{sure_s:.0f}" vehsPerHour="{saatlik:.1f}" departLane="best" departSpeed="max"/>'
         )
     satir.append('</routes>')

@@ -83,7 +83,7 @@
 
 <section>
   <h2>1 · See</h2>
-  <h3>SAM 3.1 finds every car; tracking turns detections into paths</h3>
+  <h3>SAM 3.1 finds every vehicle; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
      2-second track trails. Right: the same tracked cars on a top-down map turned to match the video, synced to it.
      The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
@@ -111,7 +111,7 @@
     <div class="card"><h4>Queue across the signal cycle, from north</h4><div class="chart"><canvas id="qK"></canvas></div></div>
     <div class="card"><h4>Queue across the signal cycle, from south</h4><div class="chart"><canvas id="qG"></canvas></div>
       <div class="note" id="calNote"></div></div>
-    <div class="card"><h4>Average wait per car, by approach</h4><div class="chart"><canvas id="waitChart"></canvas></div>
+    <div class="card"><h4>Average wait per vehicle, by approach</h4><div class="chart"><canvas id="waitChart"></canvas></div>
       <div class="note">Time spent below 1 m/s while approaching, within the 75 m the camera sees. Same definition for all three sources.</div></div>
     <div class="card"><h4>How far to trust each approach</h4><div class="note" id="waitNote" style="margin-top:0"></div></div>
   </div>
@@ -154,7 +154,7 @@
     </div>
   </div>
   <div class="card" style="margin-top:14px">
-    <h4>Average wait per car, by approach · full simulation, 10 random seeds the agent never saw</h4>
+    <h4>Average wait per vehicle, by approach · full simulation, 10 random seeds the agent never saw</h4>
     <table id="waitTable"></table>
     <div class="note">Time stopped (below 0.1 m/s) anywhere on the approach, not only inside the camera view.</div>
   </div>
@@ -268,7 +268,7 @@ function waits() {
       { label: 'Ground truth (NGSIM)', data: arms.map(a => w.ngsim[a]?.ort_s), backgroundColor: '#3fb950' },
       { label: 'Twin (SUMO, current plan)', data: arms.map(a => w.ikiz[a]?.ort_s), backgroundColor: '#f0b429' },
     ]},
-    options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'seconds per car' } } },
+    options: { scales: { y: { beginAtZero: true, title: { display: true, text: 'seconds per vehicle' } } },
       plugins: { tooltip: { callbacks: { afterLabel: c => {
         const src = ['video', 'ngsim', 'ikiz'][c.datasetIndex], r = w[src][arms[c.dataIndex]];
         return r ? `median ${r.medyan_s} s · ${r.n} cars` : ''; } } } } }
