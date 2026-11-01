@@ -259,17 +259,19 @@ def faz_plani_surelerden(sol_onde: float, guney_onde: float, ortak: float, ara_s
     return [(s, d) for s, d in fazlar if s > 0]
 
 
+def sinyal_grubu(kol: str, harf: str) -> str:
+    """Bağlantının sinyal grubu: gd güneye düz+sağ, kd kuzeye düz+sağ, ks/gs K/G kolundan sol, db ara sokak."""
+    if kol in ("D", "B"):
+        return "db"
+    if harf == "l":
+        return "ks" if kol == "K" else "gs"
+    return "gd" if kol == "K" else "kd"
+
+
 def sinyal_yaz(klasor: Path, ag: Path, fazlar: list[tuple[float, dict]], ofset: float = 0.0) -> Path:
     baglantilar = _baglanti_hareketleri(ag)
 
-    def grup(kol: str, harf: str) -> str:
-        if kol in ("D", "B"):
-            return "db"
-        if harf == "l":
-            return "ks" if kol == "K" else "gs"
-        return "gd" if kol == "K" else "kd"
-
-    gruplar = [grup(k, h) for k, h in baglantilar]
+    gruplar = [sinyal_grubu(k, h) for k, h in baglantilar]
     tls_id = sumolib.net.readNet(str(ag)).getTrafficLights()[0].getID()
     satir = ['<additional>', f'  <tlLogic id="{tls_id}" type="static" programID="video" offset="{ofset:.1f}">']
     for sure, durum in fazlar:

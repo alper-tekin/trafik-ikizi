@@ -102,6 +102,25 @@ The same wait measure, restricted to the 75 m the camera sees, was also computed
 
 Different runs of the agent find different plans. Every run is saved with its full tool trace in `data/ajan/`. On the earlier, idealised square network (before the road geometry was measured) the agent's best plan gained only 9%, because that network had a single southbound left bay. The geometry of the twin changes the answer, which is why it is measured from the video rather than assumed. The twin has since gained lane turns counted from the video and buses and trucks; the agent is re-run whenever the twin changes, and the verifier always checks the run against the twin as it is now.
 
+## An adaptive signal: serve whoever has waited longest
+
+The camera already knows how long every vehicle has been waiting (the counters on the cars in the demo), so the signal does not have to run a fixed plan. `src/trafik/uyarlamali.py` drives the twin's signal every half second through TraCI, using the same three phases as the fixed plan (southbound through + left, Lankershim both ways, cross street):
+
+- a green stays on while its own approaches still have vehicles within 40 m of the stop line, up to 60 s (minimum 7 s, cross street 10 s); every change costs 3 s yellow + 1 s all-red;
+- when that demand ends, the next green goes to the phase chosen by the rule: **longest wait first** (the single vehicle that has waited longest) or **weighted** (the sum of the waiting times, so long waits and long queues both count);
+- pedestrian-button assumption: at least once every 120 s the cross street gets 30 s (pedestrians cross Lankershim) and the shared Lankershim green gets 18 s.
+
+Same 1,186 vehicles from the video, 10 seeds of driver behaviour, and 10 random mornings as a check:
+
+| | Avg delay, video's traffic | Avg wait | Avg delay, random traffic |
+|---|---|---|---|
+| Current plan | 20.4 s | 12.2 s | 26.0 s |
+| Agent's fixed plan | **17.6 s** | **9.7 s** | **21.9 s** |
+| Adaptive, longest wait first | 18.1 s | 10.0 s | 22.2 s |
+| Adaptive, weighted | 20.1 s | 10.6 s | **21.9 s** |
+
+With no tuning at all, longest-wait-first gets within half a second of the agent's tuned plan, and it is the best of the four for Lankershim from the north (wait 14.1 → 9.4 s). It pays on the cross street (from west 6.1 → 16.3 s), mostly because of the pedestrian rule: every two minutes the cross street holds 30 s of green whether or not cars are there. The first version switched as soon as another phase scored higher and lost a quarter of the time to yellow and all-red; keeping the green while its queue is still discharging fixed that. The 40 m demand distance was checked at 20, 30, 40 and 60 m (longest wait first: 17.8 to 18.2 s, weighted: 20.2 to 20.6 s). In the demo the right-hand twin can switch between the agent's plan and both adaptive rules.
+
 ## What went wrong along the way (and what fixed it)
 
 - **ICP calibration drifted.** NGSIM only tracks vehicles on Lankershim, so SAM's correct detections on the side street pulled point matching off. A grid search scored by a one-sided "coverage" measure fixed it: extra detections cannot raise the score, only covered ground-truth vehicles can.
@@ -170,6 +189,7 @@ src/trafik/
   sumo_ag.py      SUMO network on the measured geometry, demand and signal plan from video data
   simule.py       runs SUMO through TraCI
   degerlendir.py  plan constraints, multi-seed evaluation, Webster baseline
+  uyarlamali.py   adaptive signal: longest-wait-first and weighted rules, run through TraCI
   ajan.py         Muse Spark agent, tools and verifier
 scripts/          one script per pipeline step (see Run it)
 web/              FastAPI server and single-page demo

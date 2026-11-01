@@ -78,6 +78,28 @@ def oynatma(plan: dict, sayim: dict, surucu: dict, klasor: str, gelis: str = "ge
             "baslangic_s": OYNATMA_S[0], "kareler": kareler, "arac_bekleme": arac_bekleme}
 
 
+def kareler_penceresi(d: pd.DataFrame) -> dict:
+    """Oynatma penceresindeki araçlar (2 Hz), arayüz biçiminde."""
+    d = d[(d.t >= OYNATMA_S[0]) & (d.t < OYNATMA_S[1])]
+    d = d[np.hypot(d.u, d.w) < 110]
+    return {f"{t - OYNATMA_S[0]:.1f}": [[a, round(u, 2), round(w, 2), round(h, 1), round(aci)]
+                                         for a, u, w, h, aci in g[["arac", "u", "w", "hiz", "aci"]].itertuples(index=False)]
+            for t, g in d.groupby("t")}
+
+
+def oynatma_uyarlamali(kural: str, sayim: dict, surucu: dict, gelis: str = "gercek") -> dict:
+    """Uyarlamalı sinyal (uyarlamali.py): sabit döngü yok; her karenin sinyal durumu ve faz adı kaydedilir."""
+    from trafik import uyarlamali
+
+    cfg = uyarlamali.hazirla(sayim, surucu, gelis, klasor=f"sim/arayuz_uyarlamali_{kural}")
+    k = uyarlamali.calistir(cfg, kural, 1, kayit=True)
+    d = k["noktalar"]
+    durumlar = [[s, ad] for t, s, ad in k["durumlar"] if OYNATMA_S[0] <= t < OYNATMA_S[1]]
+    return {"kural": kural, "gelis": gelis, "sinyal": [], "durumlar": durumlar, "isinma_s": 120.0, "ofset_s": 0.0,
+            "baslangic_s": OYNATMA_S[0], "kareler": kareler_penceresi(d),
+            "arac_bekleme": arac_beklemeleri(d[d.t < SURE_S]) if gelis == "gercek" else {}}
+
+
 def ag_geometrisi(ag_yolu: Path) -> dict:
     """Arayüz çizimi için SUMO ağı: şerit şekilleri, kavşak çokgeni, şerit başına
     sinyal bağlantıları (yön harfi ve sinyal dizisindeki sırası). Kavşak merkezli metre."""
@@ -166,11 +188,29 @@ def main() -> None:
             for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
         },
     }
+    # Uyarlamalı sinyal: iki kural, videodaki araçlarla ve rastgele gelişlerle (10 tohum) + oynatmalar
+    from trafik import uyarlamali
+    sim_uyar = {}
+    for kural in ("saf", "agirlikli"):
+        for anahtar, gelis in (("planlar_10_tohum", "gercek"), ("planlar_10_tohum_rastgele", "rastgele")):
+            u = uyarlamali.degerlendir(kural, sayim, surucu, tuple(range(11, 21)), gelis=gelis)
+            bekleme[anahtar][f"uyarlamali_{kural}"] = {
+                k: u[k] for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+            sim_uyar[(kural, gelis)] = oynatma_uyarlamali(kural, sayim, surucu, gelis)
+
     # Araç araç: aynı aracın videodaki, mevcut plandaki ve önerilen plandaki beklemesi (75 m, tohum 1)
     v = arac_beklemeleri(video)
     a, b = sim_mevcut["arac_bekleme"], sim_onerilen["arac_bekleme"]
     ortak = sorted(set(v) & set(a) & set(b))
     va, aa, ba = (np.array([x[i] for i in ortak]) for x in (v, a, b))
+    for kural in ("saf", "agirlikli"):
+        c = sim_uyar[(kural, "gercek")]["arac_bekleme"]
+        cc = np.array([c.get(i, np.nan) for i in ortak])
+        bekleme[f"arac_arac_uyarlamali_{kural}"] = {
+            "ort_s": round(float(np.nanmean(cc)), 1),
+            "mevcuttan_daha_az_pay": round(float((cc < aa - 1).mean()), 3),
+            "mevcuttan_daha_fazla_pay": round(float((cc > aa + 1).mean()), 3),
+        }
     bekleme["arac_arac"] = {
         "n": len(ortak),
         "ort_s": {"video": round(float(va.mean()), 1), "mevcut": round(float(aa.mean()), 1),
@@ -215,6 +255,8 @@ def main() -> None:
     yaz("sim_onerilen.json", sim_onerilen)
     yaz("sim_mevcut_rastgele.json", sim_mevcut_r)
     yaz("sim_onerilen_rastgele.json", sim_onerilen_r)
+    for (kural, gelis), v in sim_uyar.items():
+        yaz(f"sim_uyarlamali_{kural}{'_rastgele' if gelis == 'rastgele' else ''}.json", v)
     yaz("sim_ag.json", ag_geometrisi(Path("sim/arayuz_mevcut/ag.net.xml")))
 
 

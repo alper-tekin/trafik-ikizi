@@ -164,6 +164,9 @@
   <div class="card" style="margin-top:14px">
     <div class="row" style="margin-bottom:8px">
       <button id="simPlay">Play</button>
+      <select id="simRight" class="ghost" title="Right-hand twin">
+        <option value="onerilen">Right: agent's plan</option><option value="uyarlamali_saf">Right: adaptive, longest wait first</option>
+        <option value="uyarlamali_agirlikli">Right: adaptive, weighted wait</option></select>
       <select id="simTraffic" class="ghost" title="Traffic in the twin">
         <option value="gercek">Traffic: vehicles from the video</option><option value="rastgele">Traffic: random arrivals</option></select>
       <select id="simSpeed" class="ghost"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select>
@@ -195,12 +198,17 @@ Chart.defaults.color = '#8b949e'; Chart.defaults.borderColor = '#2a313c'; Chart.
 let OZET, BEV, SIM_A, SIM_B, AG;
 // İkizdeki trafik: videodaki araçlar (varsayılan) ya da sayımlardan rastgele gelişler (?trafik=rastgele)
 const RASTGELE = new URLSearchParams(location.search).get('trafik') === 'rastgele';
+// Sağdaki ikiz: ajanın planı ya da uyarlamalı sinyal (?sag=uyarlamali_saf | uyarlamali_agirlikli)
+const SAG_AD = { onerilen: 'Recommended by the agent', uyarlamali_saf: 'Adaptive signal: longest wait first',
+                 uyarlamali_agirlikli: 'Adaptive signal: weighted wait' };
+const SAG_KISA = { onerilen: "agent's plan", uyarlamali_saf: 'adaptive (longest wait)', uyarlamali_agirlikli: 'adaptive (weighted)' };
+const SAG = SAG_AD[new URLSearchParams(location.search).get('sag')] ? new URLSearchParams(location.search).get('sag') : 'onerilen';
 
 async function load() {
   // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
   [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', RASTGELE ? 'sim_mevcut_rastgele' : 'sim_mevcut',
-    RASTGELE ? 'sim_onerilen_rastgele' : 'sim_onerilen', 'sim_ag'].map(veri));
+    (SAG === 'onerilen' ? 'sim_onerilen' : `sim_${SAG}`) + (RASTGELE ? '_rastgele' : ''), 'sim_ag'].map(veri));
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
@@ -290,17 +298,22 @@ function waits() {
   const p = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'], rows = Object.keys(p.mevcut.kol_bekleme_s);
   $('#waitTitle').textContent = 'Average wait per vehicle, by approach · full simulation, ' + (RASTGELE
     ? '10 seeds of random arrivals the agent never saw' : 'the vehicles from the video, 10 seeds of driver behaviour');
-  const aa = OZET.bekleme.arac_arac;
+  const aa = OZET.bekleme.arac_arac, ua = OZET.bekleme[`arac_arac_${SAG}`];
+  const sOrt = ua ? ua.ort_s : aa.ort_s.onerilen, az = ua ? ua.mevcuttan_daha_az_pay : aa.onerilende_daha_az_pay,
+        fazla = ua ? ua.mevcuttan_daha_fazla_pay : aa.onerilende_daha_fazla_pay;
   $('#aracNote').innerHTML = RASTGELE ? '' : `<b>Vehicle by vehicle</b> (the same ${aa.n} vehicles, wait within the 75 m the camera sees):
-    in the video ${aa.ort_s.video} s on average, in the twin under the current plan ${aa.ort_s.mevcut} s, under the agent's plan
-    ${aa.ort_s.onerilen} s. Under the agent's plan ${Math.round(aa.onerilende_daha_az_pay * 100)}% of these vehicles wait at least 1 s less
-    and ${Math.round(aa.onerilende_daha_fazla_pay * 100)}% at least 1 s more. Hover over a car in the twin to see its own numbers.`;
-  $('#waitTable').innerHTML = '<tr><th>Approach</th><th></th><th>Current plan</th><th>Recommended</th><th>Change</th></tr>' +
-    rows.map(k => { const a = p.mevcut.kol_bekleme_s[k], b = p.onerilen.kol_bekleme_s[k], d = +(b - a).toFixed(1);
+    in the video ${aa.ort_s.video} s on average, in the twin under the current plan ${aa.ort_s.mevcut} s, under the ${SAG_KISA[SAG]}
+    ${sOrt} s. Under the ${SAG_KISA[SAG]} ${Math.round(az * 100)}% of these vehicles wait at least 1 s less
+    and ${Math.round(fazla * 100)}% at least 1 s more. Hover over a car in the twin to see its own numbers.`;
+  const sag = p[SAG];
+  $('#waitTable').innerHTML = `<tr><th>Approach</th><th></th><th>Current plan</th><th>${SAG_AD[SAG]}</th><th>Change</th></tr>` +
+    rows.map(k => { const a = p.mevcut.kol_bekleme_s[k], b = sag.kol_bekleme_s[k], d = +(b - a).toFixed(1);
       return `<tr><td>${ARM_NAME[ARM_EN[k]]}</td><td></td><td>${a} s</td><td>${b} s</td>
         <td style="color:${d < -0.5 ? 'var(--good)' : d > 0.5 ? 'var(--bad)' : 'var(--muted)'}">${d > 0 ? '+' : ''}${d} s</td></tr>`; }).join('') +
-    `<tr><td><b>All vehicles</b></td><td></td><td><b>${p.mevcut.arac_basi_durma_bekleme_s} s</b></td><td><b>${p.onerilen.arac_basi_durma_bekleme_s} s</b></td>
-      <td style="color:var(--good)"><b>${(p.onerilen.arac_basi_durma_bekleme_s - p.mevcut.arac_basi_durma_bekleme_s).toFixed(1)} s</b></td></tr>`;
+    `<tr><td><b>All vehicles</b></td><td></td><td><b>${p.mevcut.arac_basi_durma_bekleme_s} s</b></td><td><b>${sag.arac_basi_durma_bekleme_s} s</b></td>
+      <td style="color:var(--good)"><b>${(sag.arac_basi_durma_bekleme_s - p.mevcut.arac_basi_durma_bekleme_s).toFixed(1)} s</b></td></tr>` +
+    `<tr><td>Avg delay</td><td></td><td>${p.mevcut.ort_gecikme_s} s</td><td>${sag.ort_gecikme_s} s</td>
+      <td>${(sag.ort_gecikme_s - p.mevcut.ort_gecikme_s).toFixed(1)} s</td></tr>`;
 }
 
 // --- ajan ---

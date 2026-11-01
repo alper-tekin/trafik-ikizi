@@ -367,7 +367,7 @@ function stoppedNear(vs) { return vs.filter(v => v[3] < 0.5 && Math.hypot(v[1], 
 function drawTwin(cv, sim, t) {
   const { ctx, gr } = setupCanvas(cv);
   ctx.drawImage(networkImage(gr.W), 0, 0);
-  const ph = phaseAt(sim, t);
+  const ph = sim.durumlar ? kayitliFaz(sim, t) : phaseAt(sim, t);
   drawSignals(ctx, gr, ph.f.durum);
   const vs = vehiclesAt(sim, t);
   for (const v of vs) drawCar(ctx, gr, v);
@@ -436,7 +436,23 @@ function bevStart() {
 }
 
 // ---------------------------------------------------------------- 4. bölüm: plan karşılaştırması
+// Uyarlamalı sinyal: sabit döngü yok; o karenin kayıtlı durumu ve faz adı.
+function kayitliFaz(sim, t) {
+  const [durum, ad] = sim.durumlar[Math.min(Math.floor(t * 2), sim.durumlar.length - 1)];
+  return { f: { durum, ad }, kalan: null, x: null };
+}
+
 function phaseBar(el, sim) {
+  if (sim.durumlar) {  // uyarlamalı: pencere boyunca fazların zaman çizelgesi
+    const bloklar = [];
+    for (const [, ad] of sim.durumlar) {
+      const son = bloklar[bloklar.length - 1];
+      son && son.ad === ad ? son.n++ : bloklar.push({ ad, n: 1 });
+    }
+    el.innerHTML = bloklar.map(b => `<span title="${b.ad}: ${b.n / 2} s" style="width:${b.n / sim.durumlar.length * 100}%;` +
+      `background:${phaseColor(b.ad)}"></span>`).join('') + '<i></i>';
+    return;
+  }
   const C = cycleOf(sim);
   el.innerHTML = sim.sinyal.map(f =>
     `<span title="${f.ad}: ${f.sure} s" style="width:${f.sure / C * 100}%;background:${phaseColor(f.ad)}"></span>`).join('') + '<i></i>';
@@ -444,7 +460,9 @@ function phaseBar(el, sim) {
 
 function simSetup() {
   $('#simAh').textContent = 'Current plan (from video)';
-  $('#simBh').textContent = 'Recommended by the agent';
+  $('#simBh').textContent = SAG_AD[SAG];
+  $('#simRight').value = SAG;
+  $('#simRight').onchange = e => { const q = new URLSearchParams(location.search); q.set('sag', e.target.value); location.search = q; };
   const plan10 = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'];
   const n = Object.keys(OZET.video_arac_bekleme || {}).length;
   $('#simLead').textContent = RASTGELE
@@ -452,14 +470,16 @@ function simSetup() {
     : `Both plans replay the same ${n} vehicles from the video: each enters at the second, place, lane and speed it was first seen
        and goes where it went. Shown: video 5:00 to 10:00, with the current plan's signals timed as in the video.`;
   $('#simTraffic').value = RASTGELE ? 'rastgele' : 'gercek';
-  $('#simTraffic').onchange = e => { location.search = e.target.value === 'rastgele' ? '?trafik=rastgele' : ''; };
+  $('#simTraffic').onchange = e => { const q = new URLSearchParams(location.search);
+    e.target.value === 'rastgele' ? q.set('trafik', 'rastgele') : q.delete('trafik'); location.search = q; };
   const kolKodu = { 'from north (southbound)': 'K', 'from south (northbound)': 'G', 'from east': 'D', 'from west': 'B' };
   SIM_A._bekleme = Object.fromEntries(Object.entries(plan10.mevcut.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
-  SIM_B._bekleme = Object.fromEntries(Object.entries(plan10.onerilen.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
+  SIM_B._bekleme = Object.fromEntries(Object.entries(plan10[SAG].kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
   for (const [k, sim] of [['A', SIM_A], ['B', SIM_B]]) {
     phaseBar($(`#sim${k}bar`), sim);
     const p = sim.plan;
-    $(`#sim${k}bar`).title = `left ${p.sol_onde} · SB lead ${p.guney_onde} · shared ${p.ortak} · cross ${p.ara_sokak} s (cycle ${cycleOf(sim)} s)`;
+    $(`#sim${k}bar`).title = sim.durumlar ? 'Adaptive signal: phases over the 5 minutes shown'
+      : `left ${p.sol_onde} · SB lead ${p.guney_onde} · shared ${p.ortak} · cross ${p.ara_sokak} s (cycle ${cycleOf(sim)} s)`;
   }
   const seri = sim => frameMap(sim).map(m => stoppedNear([...m.values()]));
   const sA = seri(SIM_A), sB = seri(SIM_B);
@@ -483,7 +503,7 @@ function simSetup() {
       labels: sA.map((_, i) => i),
       datasets: [
         { label: 'Current plan', data: sA, borderColor: '#8b949e', pointRadius: 0, borderWidth: 1.5, tension: 0.3 },
-        { label: 'Recommended plan', data: sB, borderColor: '#3fb950', pointRadius: 0, borderWidth: 1.5, tension: 0.3 },
+        { label: SAG_AD[SAG], data: sB, borderColor: '#3fb950', pointRadius: 0, borderWidth: 1.5, tension: 0.3 },
       ],
     },
     options: {
@@ -501,8 +521,8 @@ function simSetup() {
     const i = Math.min(Math.round(t * 2), cA.length - 1);
     for (const [k, r, sim] of [['A', a, SIM_A], ['B', b, SIM_B]]) {
       $(`#sim${k}now`).textContent = r.stopped;
-      $(`#sim${k}phase`).textContent = `${r.ph.f.ad} · ${Math.ceil(r.ph.kalan)} s`;
-      $(`#sim${k}bar i`).style.left = `${r.ph.x / cycleOf(sim) * 100}%`;
+      $(`#sim${k}phase`).textContent = r.ph.kalan === null ? r.ph.f.ad : `${r.ph.f.ad} · ${Math.ceil(r.ph.kalan)} s`;
+      $(`#sim${k}bar i`).style.left = r.ph.x === null ? `${t / max * 100}%` : `${r.ph.x / cycleOf(sim) * 100}%`;
     }
     $('#simAcum').textContent = (cA[i] / 60).toFixed(1);
     $('#simBcum').textContent = (cB[i] / 60).toFixed(1);
@@ -543,7 +563,7 @@ function simSetup() {
       ipucu.innerHTML = `<b>${/^[KGDB][slr]B/.test(id) ? 'Bus/truck' : 'Vehicle'} #${iz}</b> · ${KOL[id[0]]}, ${HAR[id[1]]}` +
         (simdi ? `<br>waiting now: ${Math.floor(simdi)} s` : '') +
         (RASTGELE ? '<br>random arrival (not a vehicle from the video)' :
-          `<br>total wait, 75 m before the stop line:<br>video ${s(OZET.video_arac_bekleme[iz])} · current plan ${s(SIM_A.arac_bekleme[iz])} · agent's plan ${s(SIM_B.arac_bekleme[iz])}`);
+          `<br>total wait, 75 m before the stop line:<br>video ${s(OZET.video_arac_bekleme[iz])} · current plan ${s(SIM_A.arac_bekleme[iz])} · ${SAG_KISA[SAG]} ${s(SIM_B.arac_bekleme[iz])}`);
       ipucu.style.left = `${e.pageX + 14}px`; ipucu.style.top = `${e.pageY + 14}px`; ipucu.hidden = false;
     };
   }
