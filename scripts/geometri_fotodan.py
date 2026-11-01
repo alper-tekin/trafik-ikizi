@@ -33,7 +33,10 @@ KOLLAR = {
     "K": {"eksen": "x", "kesit": (395, 625),
           "gelen": ([118.0, 133.6, 148.8, 165.4, 182.5, 199.5], [124.0, 139.0, 154.0, 168.4, 183.3, 198.2]),
           "giden": ([199.5, 215.6, 232.9, 250.3], [198.2, 213.1, 228.6, 245.6]),
-          "durma": ((373.0, 100.0), (373.0, 199.0))},
+          "durma": ((373.0, 100.0), (373.0, 199.0)),
+          # durma çizgisinden 20 m geriye kadar en dışta sağa dönüş cebi (boyalı sağ ok); cebin
+          # başı ve sonu (orta çizgisi boyunca) ile iki kenarı
+          "cep": {"bas": (373.0, 108.0), "son": (478.0, 108.0), "kenar": ((430.0, 99.0), (430.0, 118.0))}},
     # güney kolu (solda): gelen altta; iki sarı arasında ~3 m boyalı orta refüj
     "G": {"eksen": "x", "kesit": (125, 15),
           "gelen": ([186.5, 204.5, 222.7, 241.8, 261.9, 281.0], [186.9, 205.6, 225.0, 245.5, 264.6, 283.2]),
@@ -92,6 +95,11 @@ def olc(G):
             g[t] = {"n": len(gen), "merkez": [round((a + b) / 2, 2) for a, b in zip(s, s[1:])],
                     "genislik": round(float(np.mean(gen)), 3)}
             rapor[f"{k}_{t}"] = {"genislikler_m": [round(x, 2) for x in gen], "yakin_uzak_yanal_fark_m": sapma[t]}
+        if "cep" in c:
+            p0, p1 = (yere(Ginv, p) for p in (c["cep"]["bas"], c["cep"]["son"]))
+            k0, k1 = (yere(Ginv, p) for p in c["cep"]["kenar"])
+            g["cep"] = {"uzunluk_m": round(float(np.linalg.norm(p1 - p0)), 1),
+                        "genislik_m": round(float(np.linalg.norm(k1 - k0)), 2), "hareket": "r"}
         kollar[k] = g
         rapor[k] = {"aci_der": round(float(np.degrees(np.arctan2(e[1], e[0]))), 1), "durma_m": g["durma_m"]}
     return {"kollar": kollar, "kaynak": "araçsız yol fotoğrafındaki boya (scripts/geometri_fotodan.py)"}, rapor

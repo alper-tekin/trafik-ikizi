@@ -49,8 +49,9 @@ def main() -> None:
         merkez = np.sort(g["gelen"]["merkez"])
         serit = int(np.argmin(np.abs(merkez - yanal[i])))
         harf = HAREKET_HARF[int(p.hareket.iloc[0])]
-        izinli = [j for j, h in enumerate(SERIT_HAREKET[k][:len(merkez)]) if harf in h]
-        serit = min(izinli, key=lambda j: abs(j - serit)) if izinli else serit
+        if not g.get("cep"):  # cepli kolda şerit hareketi kurulurken (cep/uzak kısım) seçilir
+            izinli = [j for j, h in enumerate(SERIT_HAREKET[k][:len(merkez)]) if harf in h]
+            serit = min(izinli, key=lambda j: abs(j - serit)) if izinli else serit
         satir.append({
             "arac": int(arac), "giris": k, "cikis": p.cikis.iloc[0], "hareket": int(p.hareket.iloc[0]),
             "buyuk": bool(p.buyuk.iloc[0]), "t": round(float(p.t.iloc[i]), 1),

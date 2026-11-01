@@ -90,7 +90,10 @@ def calistir(cfg: Path, kural: str, tohum: int = 1, kayit: bool = False) -> dict
                     bekleme.pop(v, None)
                     continue
                 serit = traci.vehicle.getLaneID(v)
-                if traci.lane.getLength(serit) - traci.vehicle.getLanePosition(v) < TALEP_M:
+                kalan = traci.lane.getLength(serit) - traci.vehicle.getLanePosition(v)
+                if traci.vehicle.getRoadID(v).endswith("_uzak_gir"):
+                    kalan += traci.lane.getLength(f"{v[0]}_gir_1")  # cep kısmı
+                if kalan < TALEP_M:
                     yakindakiler.append(v)
                 if traci.vehicle.getSpeed(v) < DURGUN_MS:
                     bekleme[v] = bekleme.get(v, 0.0) + ADIM

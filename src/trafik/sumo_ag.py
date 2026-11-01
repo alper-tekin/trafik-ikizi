@@ -45,11 +45,12 @@ def _sumo_bin(ad: str) -> str:
 # Şerit -> hareket eşlemesi (şerit 0 = en sağ/en dış), videodan: her şeritte durma çizgisi
 # önünde bekleyen araçların gerçekte nereye gittiği sayıldı ve yoldaki boyalı oklarla
 # karşılaştırıldı (doğu kolunda oklar sağ / düz / sol, sayımlarla aynı). Şerit başına sayımlar:
-#   K: 150 düz+32 sağ | 117 düz | 119 düz | 98 sol | 59 sol (sağ cepte boyalı sağ ok)
+#   K: 150 düz+32 sağ | 117 düz | 119 düz | 98 sol | 59 sol; sağa dönenler durma çizgisinden
+#      20 m önce açılan sağ cebe geçer (boyalı sağ ok), cep ayrı şerit olarak kurulur
 #   G: 92 sağ | 120 düz | 99 düz | 70 düz | 13 sol
 #   D: 42 sağ | 9 düz | 4 sol            B: 26 düz+3 sağ | 7 düz | 34 sol
 SERIT_HAREKET = {
-    "K": [("r", "s"), ("s",), ("s",), ("l",), ("l",)],
+    "K": [("r",), ("s",), ("s",), ("s",), ("l",), ("l",)],  # durma çizgisinde: sağ cep + 3 düz + 2 sol
     "G": [("r",), ("s",), ("s",), ("s",), ("l",)],
     "D": [("r",), ("s",), ("l",)],
     "B": [("r", "s"), ("s",), ("l",)],
@@ -82,8 +83,20 @@ def ag_yaz(klasor: Path, geo: dict | None = None) -> Path:
         yakin_gc, uzak_gc = e * t + n * sol_gc, e * KOL_UZUNLUK_M + n * sol_gc
         dugum.append(f'  <node id="{k}_g" x="{uzak_gi[1]:.2f}" y="{uzak_gi[0]:.2f}" type="priority"/>')
         dugum.append(f'  <node id="{k}_c" x="{uzak_gc[1]:.2f}" y="{uzak_gc[0]:.2f}" type="priority"/>')
-        kenar.append(f'  <edge id="{k}_gir" from="{k}_g" to="M" numLanes="{gi["n"]}" speed="13.9" '
-                     f'width="{gi["genislik"]:.2f}" spreadType="right" shape="{_xy(uzak_gi)} {_xy(yakin_gi)}"/>')
+        cep = g.get("cep")
+        if cep:
+            # Sağa dönüş cebi: kol iki kenara bölünür; uzak kısım n şerit, durma çizgisine son
+            # cep uzunluğunda en dışa bir şerit eklenir (şerit 0, yalnızca sağa).
+            orta = e * (t + cep["uzunluk_m"]) + n * sol_gi
+            dugum.append(f'  <node id="{k}_cep" x="{orta[1]:.2f}" y="{orta[0]:.2f}" type="priority"/>')
+            kenar.append(f'  <edge id="{k}_uzak_gir" from="{k}_g" to="{k}_cep" numLanes="{gi["n"]}" speed="13.9" '
+                         f'width="{gi["genislik"]:.2f}" spreadType="right" shape="{_xy(uzak_gi)} {_xy(orta)}"/>')
+            kenar.append(f'  <edge id="{k}_gir" from="{k}_cep" to="M" numLanes="{gi["n"] + 1}" speed="13.9" '
+                         f'width="{gi["genislik"]:.2f}" spreadType="right" shape="{_xy(orta)} {_xy(yakin_gi)}">'
+                         f'<lane index="0" width="{cep["genislik_m"]:.2f}"/></edge>')
+        else:
+            kenar.append(f'  <edge id="{k}_gir" from="{k}_g" to="M" numLanes="{gi["n"]}" speed="13.9" '
+                         f'width="{gi["genislik"]:.2f}" spreadType="right" shape="{_xy(uzak_gi)} {_xy(yakin_gi)}"/>')
         kenar.append(f'  <edge id="{k}_cik" from="M" to="{k}_c" numLanes="{gc["n"]}" speed="13.9" '
                      f'width="{gc["genislik"]:.2f}" spreadType="right" shape="{_xy(yakin_gc)} {_xy(uzak_gc)}"/>')
     dugum.append('</nodes>')
@@ -91,8 +104,13 @@ def ag_yaz(klasor: Path, geo: dict | None = None) -> Path:
 
     # Şerit bağlantıları: düzler sağdan sağa, soller en soldaki giden şeritlere, sağlar en sağa.
     baglanti = ['<connections>']
+    for k, g in geo["kollar"].items():
+        if g.get("cep"):  # uzak kısımdan cebe ve devam eden şeritlere
+            baglanti.append(f'  <connection from="{k}_uzak_gir" to="{k}_gir" fromLane="0" toLane="0"/>')
+            for i in range(g["gelen"]["n"]):
+                baglanti.append(f'  <connection from="{k}_uzak_gir" to="{k}_gir" fromLane="{i}" toLane="{i + 1}"/>')
     for k, seritler in SERIT_HAREKET.items():
-        n_gelen = geo["kollar"][k]["gelen"]["n"]
+        n_gelen = geo["kollar"][k]["gelen"]["n"] + (1 if geo["kollar"][k].get("cep") else 0)
         seritler = seritler[:n_gelen] + [("s",)] * max(0, n_gelen - len(seritler))
         for hedef_harf in ("s", "l", "r"):
             hedef = CIKIS[(k, HARF_HAREKET[hedef_harf])]
@@ -143,6 +161,9 @@ def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float,
     """Rastgele gelişler. sayimlar: (yön, hareket) -> araba sayısı, (yön, hareket, "b") ->
     otobüs/kamyon sayısı (sure_s içinde). surucu: SUMO vType parametreleri (accel, tau, minGap...)
     videoya kalibre edilmiş değerler."""
+    from trafik import geometri
+
+    cepli = {k for k, g in geometri.yukle()["kollar"].items() if g.get("cep")}
     satir = ['<routes>', *_arac_tipleri(surucu)]
     for anahtar, n in sorted(sayimlar.items(), key=lambda x: tuple(map(str, x[0]))):
         yon, hareket, buyuk = anahtar[0], anahtar[1], len(anahtar) > 2
@@ -154,7 +175,7 @@ def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float,
         # akış kimliği: kol + hareket harfi (+ B otobüs/kamyon); arayüz araç türünü buradan okur
         satir.append(
             f'  <flow id="{giris}{HAREKET_HARF[hareket]}{"B" if buyuk else ""}" type="{"buyuk" if buyuk else "oto"}" '
-            f'from="{giris}_gir" to="{cikis}_cik" '
+            f'from="{giris}{"_uzak_gir" if giris in cepli else "_gir"}" to="{cikis}_cik" '
             f'begin="0" end="{sure_s:.0f}" vehsPerHour="{saatlik:.1f}" departLane="best" departSpeed="max"/>'
         )
     satir.append('</routes>')
@@ -177,17 +198,28 @@ def gercek_talep_yaz(klasor: Path, ag: Path, surucu: dict | None = None,
     geo = geometri.yukle()["kollar"]
     satir = ['<routes>', *_arac_tipleri(surucu)]
     for a in pd.read_parquet(yol).itertuples(index=False):
-        serit = net.getEdge(f"{a.giris}_gir").getLane(int(a.serit))
-        # şeridin sonu durma çizgisi; konum şeridin başından ölçülür
-        konum = min(max(serit.getLength() - (a.d_m - geo[a.giris]["durma_m"]), 0.5), serit.getLength() - 0.5)
         harf = HAREKET_HARF[a.hareket]
+        g = geo[a.giris]
+        geri = a.d_m - g["durma_m"]  # durma çizgisine uzaklık
+        cep = g.get("cep")
+        if cep and geri > cep["uzunluk_m"]:  # cebin gerisinde: uzak kısımda, görüldüğü şeritte
+            kenar, sira, geri = f"{a.giris}_uzak_gir", int(a.serit), geri - cep["uzunluk_m"]
+            rota = f"{a.giris}_uzak_gir {a.giris}_gir {a.cikis}_cik"
+        else:
+            kenar, rota = f"{a.giris}_gir", f"{a.giris}_gir {a.cikis}_cik"
+            sira = int(a.serit) + (1 if cep else 0)  # cep şerit 0
+            izinli = [j for j, h in enumerate(SERIT_HAREKET[a.giris]) if harf in h]
+            sira = min(izinli, key=lambda j: abs(j - sira))
+        serit = net.getEdge(kenar).getLane(sira)
+        # şeridin sonu durma çizgisi (ya da cebin başı); konum şeridin başından ölçülür
+        konum = min(max(serit.getLength() - geri, 0.5), serit.getLength() - 0.5)
         # durma çizgisine çok yakın ve hızlı görülen araç durabilsin diye giriş hızı sınırlanır
         bos = serit.getLength() - konum - 2.0
         hiz = min(a.hiz, 13.9, (2 * 4.0 * max(bos, 0.0)) ** 0.5)
         satir.append(
             f'  <vehicle id="{a.giris}{harf}{"B" if a.buyuk else ""}.{a.arac}" type="{"buyuk" if a.buyuk else "oto"}" '
-            f'depart="{a.t + GERCEK_BASLANGIC_S:.1f}" departLane="{int(a.serit)}" departPos="{konum:.1f}" '
-            f'departSpeed="{hiz:.1f}"><route edges="{a.giris}_gir {a.cikis}_cik"/></vehicle>')
+            f'depart="{a.t + GERCEK_BASLANGIC_S:.1f}" departLane="{sira}" departPos="{konum:.1f}" '
+            f'departSpeed="{hiz:.1f}"><route edges="{rota}"/></vehicle>')
     satir.append('</routes>')
     cikti = klasor / "talep.rou.xml"
     cikti.write_text("\n".join(satir), encoding="utf-8")

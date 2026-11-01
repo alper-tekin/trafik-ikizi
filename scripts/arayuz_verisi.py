@@ -121,11 +121,13 @@ def ag_geometrisi(ag_yolu: Path) -> dict:
                 "sekil": [uw(p) for p in serit.getShape()], "linkler": linkler,
             })
     kavsak = [uw(p) for p in net.getNode("M").getShape()]
+    # cepli kolda uzak kısımla cep kısmı arasındaki küçük bağlantı düğümü (yalnızca asfalt)
+    ara = [[uw(p) for p in d.getShape()] for d in net.getNodes() if d.getID().endswith("_cep")]
     from trafik import geometri
 
     # Arayüz bütün çizimleri bu homografiyle yapar (kuşbakışı ve ikiz videoyla aynı açı ve
     # kadrajda); 'olculen' kollar, boyası görünmeyen kollarda şerit ayırıcı çizmek içindir.
-    return {"seritler": seritler, "kavsak": kavsak,
+    return {"seritler": seritler, "kavsak": kavsak, "ara_dugumler": ara,
             "goruntu": {"G": geometri.goruntu_donusumu().round(8).tolist(), "genislik": 640, "yukseklik": 480},
             "olculen": geometri.yukle()["kollar"]}
 

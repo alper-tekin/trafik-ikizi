@@ -69,7 +69,9 @@ def kavsak_cokgeni(g: dict) -> list:
         e, n, t = np.array(k["e"]), np.array(k["n"]), k["durma_m"]
         for taraf in ("gelen", "giden"):
             s = k[taraf]
-            for kenar in (min(s["merkez"]) - s["genislik"] / 2, max(s["merkez"]) + s["genislik"] / 2):
+            # gelenlerin dışında sağa dönüş cebi varsa kavşak alanı onu da kapsar
+            cep = k.get("cep", {}).get("genislik_m", 0.0) if taraf == "gelen" else 0.0
+            for kenar in (min(s["merkez"]) - s["genislik"] / 2 - cep, max(s["merkez"]) + s["genislik"] / 2):
                 noktalar.append(e * t + n * kenar)
     p = np.array(noktalar)
     merkez = p.mean(axis=0)

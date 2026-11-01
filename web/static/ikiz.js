@@ -113,6 +113,7 @@ function networkImage(W) {
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 1.8, '#3a434e'); }  // kaldırım
   for (const l of lanes) { const [a, b] = kirpilmis(l); bant(ctx, gr, a, b, l.genislik + 0.05, '#262b32'); }  // asfalt
   yerCokgen(ctx, gr, AG.kavsak, '#262b32');
+  for (const d of AG.ara_dugumler || []) if (d.length > 2) yerCokgen(ctx, gr, d, '#262b32');  // cep bağlantısı
   // Gelen ile giden şeritler arasında boşluk varsa (boyalı orta refüj) asfaltla doldur, iki
   // kenarına sarı çiz. Kenarlar ölçülen geometriden: n kolun solu, gelenin iç kenarı sol_gi.
   for (const g of Object.values(AG.olculen || {})) {
@@ -134,9 +135,10 @@ function networkImage(W) {
       kesikli(ctx, gr, [(a1[0] + a2[0]) / 2, (a1[1] + a2[1]) / 2], [(b1[0] + b2[0]) / 2, (b1[1] + b2[1]) / 2], 0.15, '#c9d1d999');
     }
   }
-  for (const kol of ['K', 'G', 'D', 'B']) {  // giriş ile çıkış arasında çift sarı çizgi
-    const gi = byEdge[kol + '_gir'];
-    if (!gi || !byEdge[kol + '_cik']) continue;
+  // giriş ile çıkış arasında çift sarı çizgi (sağa dönüş cebi olan kolda uzak kısım ayrı kenar)
+  for (const kenar of ['K', 'G', 'D', 'B'].flatMap(k => [k + '_gir', k + '_uzak_gir'])) {
+    const gi = byEdge[kenar];
+    if (!gi || !byEdge[kenar[0] + '_cik']) continue;
     const sol = gi[gi.length - 1], [a, b] = kirpilmis(sol), [du, dw] = laneDir(sol.sekil);
     const nu = dw, nw = -du;  // giriş yönünün solu
     for (const d of [sol.genislik / 2 + 0.12, sol.genislik / 2 + 0.32]) {
@@ -144,6 +146,7 @@ function networkImage(W) {
     }
   }
   for (const l of lanes) {  // yaya geçitleri, durma çizgileri, şerit okları
+    if (l.giris && !l.linkler.length) continue;  // cebin gerisindeki kısım kavşağa varmaz
     const [du, dw] = laneDir(l.sekil), nu = -dw, nw = du;
     const uc = l.giris ? l.sekil[l.sekil.length - 1] : l.sekil[0];
     const ic = l.giris ? 1 : -1;  // kavşağa doğru yön işareti
