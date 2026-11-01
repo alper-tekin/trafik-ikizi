@@ -286,8 +286,9 @@ function roundRect(ctx, x, y, w, h, r) {
 function cycleOf(sim) { return sim.sinyal.reduce((a, f) => a + f.sure, 0); }
 
 // SUMO döngüsü simülasyon saniyesi 0'da başlar; kayıt ısınmadan ve pencere başından sonra.
+// Gerçek gelişlerde sinyal videoyla hizalı: döngü simülasyon saniyesi ofset_s'de başlar.
 function phaseAt(sim, t) {
-  const C = cycleOf(sim), x0 = (sim.isinma_s + sim.baslangic_s + t) % C;
+  const C = cycleOf(sim), x0 = (((sim.isinma_s + sim.baslangic_s + t - (sim.ofset_s || 0)) % C) + C) % C;
   let x = x0;
   for (const f of sim.sinyal) { if (x < f.sure) return { f, kalan: f.sure - x, x: x0 }; x -= f.sure; }
   return { f: sim.sinyal[0], kalan: 0, x: x0 };
@@ -444,7 +445,14 @@ function phaseBar(el, sim) {
 function simSetup() {
   $('#simAh').textContent = 'Current plan (from video)';
   $('#simBh').textContent = 'Recommended by the agent';
-  const plan10 = OZET.bekleme.planlar_10_tohum;
+  const plan10 = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'];
+  const n = Object.keys(OZET.video_arac_bekleme || {}).length;
+  $('#simLead').textContent = RASTGELE
+    ? 'Both plans run on random arrivals drawn from the measured turning counts (same seed for both), five minutes after warm-up.'
+    : `Both plans replay the same ${n} vehicles from the video: each enters at the second, place, lane and speed it was first seen
+       and goes where it went. Shown: video 5:00 to 10:00, with the current plan's signals timed as in the video.`;
+  $('#simTraffic').value = RASTGELE ? 'rastgele' : 'gercek';
+  $('#simTraffic').onchange = e => { location.search = e.target.value === 'rastgele' ? '?trafik=rastgele' : ''; };
   const kolKodu = { 'from north (southbound)': 'K', 'from south (northbound)': 'G', 'from east': 'D', 'from west': 'B' };
   SIM_A._bekleme = Object.fromEntries(Object.entries(plan10.mevcut.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
   SIM_B._bekleme = Object.fromEntries(Object.entries(plan10.onerilen.kol_bekleme_s).map(([k, v]) => [kolKodu[k], v]));
@@ -499,7 +507,7 @@ function simSetup() {
     $('#simAcum').textContent = (cA[i] / 60).toFixed(1);
     $('#simBcum').textContent = (cB[i] / 60).toFixed(1);
     $('#simT').value = t;
-    $('#simClock').textContent = fmt(t);
+    $('#simClock').textContent = RASTGELE ? fmt(t) : 'video ' + fmt(SIM_A.baslangic_s + t);
     chart.draw();
   }
   $('#simT').oninput = e => { t = +e.target.value; render(); };
@@ -514,5 +522,30 @@ function simSetup() {
     render(); requestAnimationFrame(tick);
   }
   window.addEventListener('resize', () => { netCache.clear(); render(); });
+
+  // Araç araç: imleç bir arabanın üstündeyse o aracın videodaki ve iki plandaki beklemesi
+  const ipucu = document.createElement('div');
+  ipucu.className = 'ipucu'; ipucu.hidden = true; document.body.appendChild(ipucu);
+  const KOL = { K: 'from north', G: 'from south', D: 'from east', B: 'from west' }, HAR = { s: 'through', l: 'left', r: 'right' };
+  for (const [cv, sim] of [[$('#simA'), SIM_A], [$('#simB'), SIM_B]]) {
+    cv.onmouseleave = () => { ipucu.hidden = true; };
+    cv.onmousemove = e => {
+      const k = cv.width / cv.clientWidth, rc = cv.getBoundingClientRect(), gr = gorunum(cv.width);
+      const mx = (e.clientX - rc.left) * k, my = (e.clientY - rc.top) * k;
+      let en = null, enD = 14 * k;
+      for (const v of vehiclesAt(sim, t)) {
+        const [x, y] = gr.P(...govdeOrtasi(v)), d = Math.hypot(x - mx, y - my);
+        if (d < enD) { enD = d; en = v; }
+      }
+      if (!en) { ipucu.hidden = true; return; }
+      const id = String(en[0]), iz = id.split('.')[1], s = x => (x === undefined ? '–' : `${x} s`);
+      const simdi = sim._sayac?.[Math.min(Math.floor(t * 2), sim._sayac.length - 1)]?.get(en[0]);
+      ipucu.innerHTML = `<b>${/^[KGDB][slr]B/.test(id) ? 'Bus/truck' : 'Vehicle'} #${iz}</b> · ${KOL[id[0]]}, ${HAR[id[1]]}` +
+        (simdi ? `<br>waiting now: ${Math.floor(simdi)} s` : '') +
+        (RASTGELE ? '<br>random arrival (not a vehicle from the video)' :
+          `<br>total wait, 75 m before the stop line:<br>video ${s(OZET.video_arac_bekleme[iz])} · current plan ${s(SIM_A.arac_bekleme[iz])} · agent's plan ${s(SIM_B.arac_bekleme[iz])}`);
+      ipucu.style.left = `${e.pageX + 14}px`; ipucu.style.top = `${e.pageY + 14}px`; ipucu.hidden = false;
+    };
+  }
   render();
 }

@@ -19,7 +19,7 @@ import pandas as pd
 from trafik import olcum
 from trafik.akis import BUYUK_FT, talep_sayimlari, yerel
 from trafik.simule import calistir
-from trafik.sumo_ag import faz_plani_surelerden, kur, sim_faz0
+from trafik.sumo_ag import faz_plani_surelerden, kayit_faz0, kur, video_ofseti
 
 VERI = Path("web/veri")
 SURE_S = 1122.0
@@ -44,10 +44,18 @@ def son_ajan_kosusu() -> dict:
     raise FileNotFoundError("tamamlanmış ajan koşusu yok")
 
 
-def oynatma(plan: dict, sayim: dict, surucu: dict, klasor: str) -> dict:
+def arac_beklemeleri(d: pd.DataFrame) -> dict:
+    """Araç (video iz numarası) -> kameranın gördüğü 75 m içinde bekleme (s), olcum.bekleme_sureleri."""
+    b = olcum.bekleme_sureleri(d).bekleme_s
+    return {int(str(a).split(".")[-1]): round(float(v), 1) for a, v in b.items()}
+
+
+def oynatma(plan: dict, sayim: dict, surucu: dict, klasor: str, gelis: str = "gercek") -> dict:
     fazlar = faz_plani_surelerden(plan["sol_onde"], plan["guney_onde"], plan["ortak"], plan["ara_sokak"])
-    cfg = kur(Path("sim") / klasor, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar)
+    cfg = kur(Path("sim") / klasor, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar, gelis=gelis)
     d = calistir(cfg)
+    # gerçek gelişlerde her aracın videodakiyle karşılaştırılacak beklemesi (araç numarası = iz)
+    arac_bekleme = arac_beklemeleri(d[d.t < SURE_S]) if gelis == "gercek" else {}
     d = d[(d.t >= OYNATMA_S[0]) & (d.t < OYNATMA_S[1])]  # adım 0,5 s -> 2 Hz; arayüz ara kareleri kestirir
     d = d[np.hypot(d.u, d.w) < 110]
     kareler = {}
@@ -64,7 +72,10 @@ def oynatma(plan: dict, sayim: dict, surucu: dict, klasor: str) -> dict:
     adlar = [ad for sure, ad in adlar if sure > 0]
     sinyal = [{"sure": float(f.get("duration")), "durum": f.get("state"), "ad": ad}
               for f, ad in zip(ET.parse(cfg.parent / "sinyal.add.xml").getroot().iter("phase"), adlar)]
-    return {"plan": plan, "sinyal": sinyal, "isinma_s": 120.0, "baslangic_s": OYNATMA_S[0], "kareler": kareler}
+    # gerçek gelişlerde sinyal videoyla hizalı: döngü simülasyon saniyesi ofset_s'de başlar
+    ofset_s = video_ofseti(sum(f["sure"] for f in sinyal)) if gelis == "gercek" else 0.0
+    return {"plan": plan, "gelis": gelis, "sinyal": sinyal, "isinma_s": 120.0, "ofset_s": ofset_s,
+            "baslangic_s": OYNATMA_S[0], "kareler": kareler, "arac_bekleme": arac_bekleme}
 
 
 def ag_geometrisi(ag_yolu: Path) -> dict:
@@ -117,8 +128,9 @@ def main() -> None:
     mevcut = {"sol_onde": y["sol_onde"], "guney_onde": y["guney_onde"], "ortak": y["ortak"],
               "ara_sokak": C - y["sol_onde"] - y["guney_onde"] - y["ortak"] - 8}
     sim_mevcut = oynatma(mevcut, sayim, surucu, "arayuz_mevcut")
+    sim_mevcut_r = oynatma(mevcut, sayim, surucu, "arayuz_mevcut_rastgele", gelis="rastgele")
     cfg = Path("sim/arayuz_mevcut/sim.sumocfg")
-    q_sumo = olcum.kuyruk_profili(calistir(cfg), C, sim_faz0())
+    q_sumo = olcum.kuyruk_profili(calistir(cfg), C, kayit_faz0())
 
     ajan = son_ajan_kosusu()
     # Kayıttaki doğrulama, koşunun yapıldığı ağa aittir; ikiz ağı sonradan değiştiyse (ör. geometri
@@ -128,10 +140,12 @@ def main() -> None:
     ajan["dogrulama"] = dogrula(ajan, Ortam())
     onerilen = {k: float(v) for k, v in ajan["cevap"]["recommended_plan"].items()}
     sim_onerilen = oynatma(onerilen, sayim, surucu, "arayuz_onerilen")
+    sim_onerilen_r = oynatma(onerilen, sayim, surucu, "arayuz_onerilen_rastgele", gelis="rastgele")
 
     # Yol başına bekleme. (1) Kameranın gördüğü 75 m içinde, aynı tanımla:
-    # video, NGSIM ve ikiz (mevcut plan, 3 tohum). (2) İki planın karşılaştırması:
-    # ikizdeki toplam bekleme (SUMO waitingTime), ajanın görmediği 10 tohumda.
+    # video, NGSIM ve ikiz (mevcut plan, videodaki araçlar, 3 tohum). (2) İki planın
+    # karşılaştırması: ikizdeki toplam bekleme (SUMO waitingTime), 10 tohumda; videodaki
+    # araçlarla (tohum sürücü davranışı) ve rastgele gelişlerle (ajanın görmediği trafik).
     from trafik.degerlendir import degerlendir
     sim_noktalari = pd.concat([calistir(cfg, tohum=s).assign(arac=lambda x, s=s: x.arac + f"#{s}") for s in (1, 2, 3)])
     sim_noktalari = sim_noktalari[sim_noktalari.t < SURE_S]
@@ -146,6 +160,25 @@ def main() -> None:
                  for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
             for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
         },
+        "planlar_10_tohum_rastgele": {
+            ad: {k: degerlendir(p, sayim, surucu, tuple(range(11, 21)), gelis="rastgele")[k]
+                 for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+            for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
+        },
+    }
+    # Araç araç: aynı aracın videodaki, mevcut plandaki ve önerilen plandaki beklemesi (75 m, tohum 1)
+    v = arac_beklemeleri(video)
+    a, b = sim_mevcut["arac_bekleme"], sim_onerilen["arac_bekleme"]
+    ortak = sorted(set(v) & set(a) & set(b))
+    va, aa, ba = (np.array([x[i] for i in ortak]) for x in (v, a, b))
+    bekleme["arac_arac"] = {
+        "n": len(ortak),
+        "ort_s": {"video": round(float(va.mean()), 1), "mevcut": round(float(aa.mean()), 1),
+                  "onerilen": round(float(ba.mean()), 1)},
+        "onerilende_daha_az_pay": round(float((ba < aa - 1).mean()), 3),
+        "onerilende_daha_fazla_pay": round(float((ba > aa + 1).mean()), 3),
+        "video_mevcut_korelasyon": round(float(np.corrcoef(va, aa)[0, 1]), 2),
+        "video_mevcut_medyan_mutlak_fark_s": round(float(np.median(np.abs(va - aa))), 1),
     }
 
     ozet = {
@@ -161,6 +194,7 @@ def main() -> None:
         "takip": json.load(open("data/takip_degerlendirme.json", encoding="utf-8")),
         "kamera": json.load(open("data/kalibrasyon_kamera2.json", encoding="utf-8")),
         "mevcut_plan": mevcut,
+        "video_arac_bekleme": arac_beklemeleri(video),
         "bekleme": bekleme,
         "ajan": {k: ajan[k] for k in ("soru", "model", "adimlar", "cevap", "dogrulama", "dogrulama_kayit")},
     }
@@ -179,6 +213,8 @@ def main() -> None:
     yaz("kusbakisi.json", {"fps": 5, "kareler": kareler})
     yaz("sim_mevcut.json", sim_mevcut)
     yaz("sim_onerilen.json", sim_onerilen)
+    yaz("sim_mevcut_rastgele.json", sim_mevcut_r)
+    yaz("sim_onerilen_rastgele.json", sim_onerilen_r)
     yaz("sim_ag.json", ag_geometrisi(Path("sim/arayuz_mevcut/ag.net.xml")))
 
 

@@ -58,6 +58,8 @@
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
   .pill { font-size: 12px; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); }
   .twin canvas { aspect-ratio: 4 / 3; background: #0d1410; }  /* videoyla aynı kadraj */
+  .ipucu { position: absolute; z-index: 10; background: #0d1117f2; border: 1px solid #30363d; border-radius: 6px;
+           padding: 6px 9px; font-size: 12px; line-height: 1.45; color: #e6edf3; pointer-events: none; max-width: 300px; }
   .twinhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
   .twinhead h4 { margin: 0; }
   .phasebar { display: flex; height: 8px; border-radius: 4px; margin-bottom: 8px; position: relative; }
@@ -121,8 +123,8 @@
   <h2>3 · Decide</h2>
   <h3>A Muse Spark agent tests plans in the twin</h3>
   <p class="lead">The agent can only state numbers that came from its tools: the intersection summary,
-     video queue evidence, the Webster textbook plan, and simulation runs over 3 random seeds. A verifier then
-     re-runs its recommendation, including on 10 seeds the agent never saw.</p>
+     video queue evidence, the Webster textbook plan, and simulation runs on the video's own traffic (3 seeds of driver
+     behaviour). A verifier then re-runs its recommendation, including on 10 random mornings the agent never saw.</p>
   <div class="row" style="margin-bottom:12px">
     <button id="run">Replay the recorded agent run</button>
     <button id="runLive" class="ghost" hidden>Run live (uses API credits)</button>
@@ -137,7 +139,7 @@
 <section>
   <h2>4 · Compare</h2>
   <h3>Current plan vs recommended, side by side in the twin</h3>
-  <p class="lead">The same traffic and the same random seed run under both signal plans, five minutes after warm-up.
+  <p class="lead"><span id="simLead"></span>
      A top-down map turned to match the video. The simulation network was built from the road paint in the empty-road image (per-pixel median of the video): lane counts, widths and stop lines were measured there and converted to metres through the camera calibration. Each lane's arrows are the turns counted for that lane in the video. Cars with lit brake lights are stopped.</p>
   <div class="grid2">
     <div class="card twin">
@@ -154,13 +156,16 @@
     </div>
   </div>
   <div class="card" style="margin-top:14px">
-    <h4>Average wait per vehicle, by approach · full simulation, 10 random seeds the agent never saw</h4>
+    <h4 id="waitTitle">Average wait per vehicle, by approach</h4>
     <table id="waitTable"></table>
     <div class="note">Time stopped (below 0.1 m/s) anywhere on the approach, not only inside the camera view.</div>
+    <div id="aracNote" class="note" style="margin-top:8px"></div>
   </div>
   <div class="card" style="margin-top:14px">
     <div class="row" style="margin-bottom:8px">
       <button id="simPlay">Play</button>
+      <select id="simTraffic" class="ghost" title="Traffic in the twin">
+        <option value="gercek">Traffic: vehicles from the video</option><option value="rastgele">Traffic: random arrivals</option></select>
       <select id="simSpeed" class="ghost"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select>
       <input id="simT" type="range" min="0" max="299" step="0.1" value="0" style="flex:1">
       <span class="pill" id="simClock">0:00</span>
@@ -188,11 +193,14 @@ function getVar(n) { return getComputedStyle(document.documentElement).getProper
 Chart.defaults.color = '#8b949e'; Chart.defaults.borderColor = '#2a313c'; Chart.defaults.font.family = 'system-ui'; Chart.defaults.maintainAspectRatio = false;
 
 let OZET, BEV, SIM_A, SIM_B, AG;
+// İkizdeki trafik: videodaki araçlar (varsayılan) ya da sayımlardan rastgele gelişler (?trafik=rastgele)
+const RASTGELE = new URLSearchParams(location.search).get('trafik') === 'rastgele';
 
 async function load() {
   // Veri dosyaları yeniden üretilebiliyor; tarayıcı her seferinde sunucuya doğrulatsın.
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
-  [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', 'sim_mevcut', 'sim_onerilen', 'sim_ag'].map(veri));
+  [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', RASTGELE ? 'sim_mevcut_rastgele' : 'sim_mevcut',
+    RASTGELE ? 'sim_onerilen_rastgele' : 'sim_onerilen', 'sim_ag'].map(veri));
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
 }
@@ -205,8 +213,8 @@ function kpis() {
     [Math.round(t.kapsama * 100) + '%', 'ground-truth vehicles tracked'],
     [((us - ng) / ng * 100).toFixed(1) + '%', `vehicle count error (${us} vs ${ng})`],
     [OZET.sinyal.dongu_s + ' s', `signal cycle found (ground truth ${OZET.sinyal.ngsim_dongu_s} s)`],
-    [a.bagimsiz_10_tohum ? `${a.bagimsiz_10_tohum.taban_ort_gecikme_s} → ${a.bagimsiz_10_tohum.onerilen_ort_gecikme_s} s` : '-',
-     'avg delay, current → recommended (10 unseen seeds)'],
+    [`${a.taban_gecikme_simulasyon} → ${a.onerilen_gecikme_simulasyon} s`,
+     "avg delay on the video's traffic, current → recommended"],
   ];
   $('#kpis').innerHTML = items.map(([b, s]) => `<div class="kpi"><b>${b}</b><span>${s}</span></div>`).join('');
 }
@@ -279,12 +287,19 @@ function waits() {
       bottom edge of the frame, so the back of the queue is often out of view.</p>
     <p><b>From west</b>: ground truth reads low (${w.ngsim.B.ort_s} s) because NGSIM only starts tracking side-street cars close to
       the intersection. The twin (${w.ikiz.B.ort_s} s) is the least certain value here.</p>`;
-  const p = OZET.bekleme.planlar_10_tohum, rows = Object.keys(p.mevcut.kol_bekleme_s);
+  const p = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'], rows = Object.keys(p.mevcut.kol_bekleme_s);
+  $('#waitTitle').textContent = 'Average wait per vehicle, by approach · full simulation, ' + (RASTGELE
+    ? '10 seeds of random arrivals the agent never saw' : 'the vehicles from the video, 10 seeds of driver behaviour');
+  const aa = OZET.bekleme.arac_arac;
+  $('#aracNote').innerHTML = RASTGELE ? '' : `<b>Vehicle by vehicle</b> (the same ${aa.n} vehicles, wait within the 75 m the camera sees):
+    in the video ${aa.ort_s.video} s on average, in the twin under the current plan ${aa.ort_s.mevcut} s, under the agent's plan
+    ${aa.ort_s.onerilen} s. Under the agent's plan ${Math.round(aa.onerilende_daha_az_pay * 100)}% of these vehicles wait at least 1 s less
+    and ${Math.round(aa.onerilende_daha_fazla_pay * 100)}% at least 1 s more. Hover over a car in the twin to see its own numbers.`;
   $('#waitTable').innerHTML = '<tr><th>Approach</th><th></th><th>Current plan</th><th>Recommended</th><th>Change</th></tr>' +
     rows.map(k => { const a = p.mevcut.kol_bekleme_s[k], b = p.onerilen.kol_bekleme_s[k], d = +(b - a).toFixed(1);
       return `<tr><td>${ARM_NAME[ARM_EN[k]]}</td><td></td><td>${a} s</td><td>${b} s</td>
         <td style="color:${d < -0.5 ? 'var(--good)' : d > 0.5 ? 'var(--bad)' : 'var(--muted)'}">${d > 0 ? '+' : ''}${d} s</td></tr>`; }).join('') +
-    `<tr><td><b>All cars</b></td><td></td><td><b>${p.mevcut.arac_basi_durma_bekleme_s} s</b></td><td><b>${p.onerilen.arac_basi_durma_bekleme_s} s</b></td>
+    `<tr><td><b>All vehicles</b></td><td></td><td><b>${p.mevcut.arac_basi_durma_bekleme_s} s</b></td><td><b>${p.onerilen.arac_basi_durma_bekleme_s} s</b></td>
       <td style="color:var(--good)"><b>${(p.onerilen.arac_basi_durma_bekleme_s - p.mevcut.arac_basi_durma_bekleme_s).toFixed(1)} s</b></td></tr>`;
 }
 
@@ -325,7 +340,7 @@ function recHtml(c, d) {
       ${d.kol_gecikme_farki_s ? (() => { const f = d.kol_gecikme_farki_s, worse = Object.entries(f).filter(([, x]) => x > 0.5);
           return chk(!worse.length, worse.length ? 'Approaches that get worse: ' + worse.map(([k, x]) => `${k} +${x} s`).join(', ')
             : 'No approach gets worse by more than 0.5 s (' + Object.entries(f).map(([k, x]) => `${k} ${x > 0 ? '+' : ''}${x}`).join(', ') + ')'); })() : ''}
-      ${v ? chk(v.onerilen_tohum_araligi_s[1] < v.taban_tohum_araligi_s[0], `Holds on 10 unseen seeds: ${v.taban_ort_gecikme_s} → ${v.onerilen_ort_gecikme_s} s (ranges ${v.taban_tohum_araligi_s.join('–')} vs ${v.onerilen_tohum_araligi_s.join('–')})`) : ''}
+      ${v ? chk(v.onerilen_tohum_araligi_s[1] < v.taban_tohum_araligi_s[0], `Holds on 10 random mornings the agent never saw: ${v.taban_ort_gecikme_s} → ${v.onerilen_ort_gecikme_s} s (ranges ${v.taban_tohum_araligi_s.join('–')} vs ${v.onerilen_tohum_araligi_s.join('–')})`) : ''}
     </div>` : ''}`;
 }
 

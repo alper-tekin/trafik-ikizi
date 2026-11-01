@@ -1,8 +1,9 @@
 """Bir sinyal planını kalibre edilmiş SUMO ikizinde dener ve gecikmeleri ölçer.
 
 Ajanın her önerisi buradan geçer: plan önce gerçek dünya kısıtlarına göre
-denetlenir, sonra birkaç rastgele tohumla simüle edilir (tek koşunun şansına
-güvenilmez). Gecikme = SUMO tripinfo 'timeLoss' (serbest akışa göre kayıp süre).
+denetlenir, sonra birkaç tohumla simüle edilir (tek koşunun şansına güvenilmez).
+Varsayılan trafik videodaki araçlardır (gerçek gelişler); tohum o zaman yalnızca sürücü
+davranışındaki rastgeleliği değiştirir. gelis="rastgele" ile sayımlardan rastgele gelişler. Gecikme = SUMO tripinfo 'timeLoss' (serbest akışa göre kayıp süre).
 """
 
 import hashlib
@@ -14,7 +15,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from trafik.sumo_ag import SARI, TUM_KIRMIZI, _ortam, _sumo_bin, faz_plani_surelerden, kur
+from trafik.sumo_ag import SARI, TUM_KIRMIZI, VARSAYILAN_GELIS, _ortam, _sumo_bin, faz_plani_surelerden, kur
 
 SURE_S = 1122.0
 ISINMA_S = 120.0
@@ -69,13 +70,13 @@ def _tek_kosu(cfg: Path, tohum: int) -> pd.DataFrame:
     return pd.DataFrame(satir, columns=["kol", "hareket", "gecikme", "bekleme"])
 
 
-def degerlendir(plan: dict, sayim: dict, surucu: dict, tohumlar=(1, 2, 3)) -> dict:
+def degerlendir(plan: dict, sayim: dict, surucu: dict, tohumlar=(1, 2, 3), gelis: str = VARSAYILAN_GELIS) -> dict:
     hatalar = denetle(plan)
     if hatalar:
         return {"gecerli": False, "hatalar": hatalar}
-    anahtar = hashlib.md5(json.dumps([plan, surucu], sort_keys=True).encode()).hexdigest()[:10]
+    anahtar = hashlib.md5(json.dumps([plan, surucu, gelis], sort_keys=True).encode()).hexdigest()[:10]
     fazlar = faz_plani_surelerden(plan["sol_onde"], plan["guney_onde"], plan["ortak"], plan["ara_sokak"])
-    cfg = kur(Path("sim/aday") / anahtar, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar)
+    cfg = kur(Path("sim/aday") / anahtar, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar, gelis=gelis)
     d = pd.concat([_tek_kosu(cfg, t).assign(tohum=t) for t in tohumlar])
 
     kol = d.groupby("kol").gecikme.mean().round(1)

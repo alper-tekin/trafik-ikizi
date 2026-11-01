@@ -17,6 +17,10 @@ from pathlib import Path
 import sumolib
 
 SARI, TUM_KIRMIZI = 3, 1
+# Varsayılan: ikiz videodaki araçları videodaki saniyelerinde oynatır ("gercek");
+# "rastgele" sayımlardan üretilen gelişlerdir (bağımsız kontrol ve seçenek olarak).
+VARSAYILAN_GELIS = "gercek"
+GERCEK_BASLANGIC_S = 120.0  # gerçek gelişlerde video 0. saniyesi = simülasyon saniyesi 120 (kayıt başlangıcı)
 BUYUK_BOY_M = 10.0  # otobüs/kamyon karışımı (NGSIM büyük araç boy medyanı 29 ft ≈ 9 m, otobüsler 12 m)
 KOL_UZUNLUK_M = 300.0
 YON_KOL = {2: "G", 4: "K", 1: "B", 3: "D"}  # gidiş yönü -> giriş kolu
@@ -126,15 +130,20 @@ def _ortam() -> dict:
     return {k: v for k, v in os.environ.items() if k != "SUMO_HOME"}
 
 
-def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float, olcek: float = 1.0,
-              surucu: dict | None = None) -> Path:
-    """sayimlar: (yön, hareket) -> araba sayısı, (yön, hareket, "b") -> otobüs/kamyon sayısı (sure_s içinde).
-    surucu: SUMO vType parametreleri (accel, tau, minGap...) videoya kalibre edilmiş değerler."""
+def _arac_tipleri(surucu: dict | None) -> list[str]:
     p = {"length": 4.8, "minGap": 2.0, "accel": 2.0, "decel": 4.5, "sigma": 0.5, "tau": 1.0, **(surucu or {})}
     # Otobüs/kamyon: BUYUK_BOY_M, daha yavaş hızlanan; sürücü tepki süresi arabalarla aynı.
     b = {**p, "length": BUYUK_BOY_M, "minGap": 2.5, "accel": min(p["accel"], 1.2), "decel": 4.0}
     ozellik = lambda q: " ".join(f'{k}="{v}"' for k, v in q.items())  # noqa: E731
-    satir = ['<routes>', f'  <vType id="oto" {ozellik(p)}/>', f'  <vType id="buyuk" {ozellik(b)}/>']
+    return [f'  <vType id="oto" {ozellik(p)}/>', f'  <vType id="buyuk" {ozellik(b)}/>']
+
+
+def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float, olcek: float = 1.0,
+              surucu: dict | None = None) -> Path:
+    """Rastgele gelişler. sayimlar: (yön, hareket) -> araba sayısı, (yön, hareket, "b") ->
+    otobüs/kamyon sayısı (sure_s içinde). surucu: SUMO vType parametreleri (accel, tau, minGap...)
+    videoya kalibre edilmiş değerler."""
+    satir = ['<routes>', *_arac_tipleri(surucu)]
     for anahtar, n in sorted(sayimlar.items(), key=lambda x: tuple(map(str, x[0]))):
         yon, hareket, buyuk = anahtar[0], anahtar[1], len(anahtar) > 2
         giris = YON_KOL[yon]
@@ -152,6 +161,44 @@ def talep_yaz(klasor: Path, sayimlar: dict[tuple[int, int], int], sure_s: float,
     yol = klasor / "talep.rou.xml"
     yol.write_text("\n".join(satir), encoding="utf-8")
     return yol
+
+
+def gercek_talep_yaz(klasor: Path, ag: Path, surucu: dict | None = None,
+                     yol: str = "data/gelisler.parquet") -> Path:
+    """Videodaki araçlar (scripts/gelis_cikar.py): her biri videoda ilk görüldüğü anda
+    (simülasyon saniyesi = video saniyesi + GERCEK_BASLANGIC_S), ilk görüldüğü yerde, şeritte
+    ve hızda girer. Araç kimliği: kol + hareket harfi (+ B) + "." + iz numarası; arayüz aynı
+    aracı videoyla bu numaradan eşler. Yer doluysa SUMO girişi yer açılana kadar erteler."""
+    import pandas as pd
+
+    net = sumolib.net.readNet(str(ag))
+    from trafik import geometri
+
+    geo = geometri.yukle()["kollar"]
+    satir = ['<routes>', *_arac_tipleri(surucu)]
+    for a in pd.read_parquet(yol).itertuples(index=False):
+        serit = net.getEdge(f"{a.giris}_gir").getLane(int(a.serit))
+        # şeridin sonu durma çizgisi; konum şeridin başından ölçülür
+        konum = min(max(serit.getLength() - (a.d_m - geo[a.giris]["durma_m"]), 0.5), serit.getLength() - 0.5)
+        harf = HAREKET_HARF[a.hareket]
+        # durma çizgisine çok yakın ve hızlı görülen araç durabilsin diye giriş hızı sınırlanır
+        bos = serit.getLength() - konum - 2.0
+        hiz = min(a.hiz, 13.9, (2 * 4.0 * max(bos, 0.0)) ** 0.5)
+        satir.append(
+            f'  <vehicle id="{a.giris}{harf}{"B" if a.buyuk else ""}.{a.arac}" type="{"buyuk" if a.buyuk else "oto"}" '
+            f'depart="{a.t + GERCEK_BASLANGIC_S:.1f}" departLane="{int(a.serit)}" departPos="{konum:.1f}" '
+            f'departSpeed="{hiz:.1f}"><route edges="{a.giris}_gir {a.cikis}_cik"/></vehicle>')
+    satir.append('</routes>')
+    cikti = klasor / "talep.rou.xml"
+    cikti.write_text("\n".join(satir), encoding="utf-8")
+    return cikti
+
+
+def video_ofseti(dongu: float, yol: str = "data/sinyal_plani.json") -> float:
+    """Gerçek gelişli ikizde sinyal videoyla aynı saniyede: önden-sol fazı, videoda başladığı
+    anda (faz0 + önden-sol başlangıcı) başlar. Simülasyon saniyesi = video + GERCEK_BASLANGIC_S."""
+    p = json.load(open(yol, encoding="utf-8"))
+    return (GERCEK_BASLANGIC_S + float(p["faz0_video_s"]) + float(p["bizim"]["guneye_sol"]["baslangic_s"])) % dongu
 
 
 def _baglanti_hareketleri(ag: Path) -> list[tuple[str, str]]:
@@ -212,7 +259,7 @@ def faz_plani_surelerden(sol_onde: float, guney_onde: float, ortak: float, ara_s
     return [(s, d) for s, d in fazlar if s > 0]
 
 
-def sinyal_yaz(klasor: Path, ag: Path, fazlar: list[tuple[float, dict]]) -> Path:
+def sinyal_yaz(klasor: Path, ag: Path, fazlar: list[tuple[float, dict]], ofset: float = 0.0) -> Path:
     baglantilar = _baglanti_hareketleri(ag)
 
     def grup(kol: str, harf: str) -> str:
@@ -224,7 +271,7 @@ def sinyal_yaz(klasor: Path, ag: Path, fazlar: list[tuple[float, dict]]) -> Path
 
     gruplar = [grup(k, h) for k, h in baglantilar]
     tls_id = sumolib.net.readNet(str(ag)).getTrafficLights()[0].getID()
-    satir = ['<additional>', f'  <tlLogic id="{tls_id}" type="static" programID="video" offset="0">']
+    satir = ['<additional>', f'  <tlLogic id="{tls_id}" type="static" programID="video" offset="{ofset:.1f}">']
     for sure, durum in fazlar:
         # Sağa dönüşler kırmızıda da yol vererek dönebilir (ABD kuralı)
         s = "".join(
@@ -254,12 +301,20 @@ def yapilandirma_yaz(klasor: Path, ag: Path, talep: Path, sinyal: Path, sure_s: 
 
 
 def kur(klasor: Path, sayimlar: dict, sure_s: float, yesil: dict, dongu: float, olcek: float = 1.0,
-        surucu: dict | None = None, fazlar: list | None = None) -> Path:
-    """fazlar verilirse yesil/dongu yerine doğrudan o faz listesi kullanılır."""
+        surucu: dict | None = None, fazlar: list | None = None, gelis: str = VARSAYILAN_GELIS) -> Path:
+    """fazlar verilirse yesil/dongu yerine doğrudan o faz listesi kullanılır.
+    gelis: "gercek" videodaki araçlar videodaki saniyelerinde, sinyal videoyla hizalı;
+    "rastgele" sayımlardan rastgele gelişler, sinyal simülasyon saniyesi 0'da başlar."""
     klasor.mkdir(parents=True, exist_ok=True)
     ag = ag_yaz(klasor)
-    talep = talep_yaz(klasor, sayimlar, sure_s, olcek, surucu)
-    sinyal = sinyal_yaz(klasor, ag, fazlar or faz_plani(yesil, dongu))
+    fazlar = fazlar or faz_plani(yesil, dongu)
+    if gelis == "gercek":
+        talep = gercek_talep_yaz(klasor, ag, surucu)
+        ofset = video_ofseti(sum(f[0] for f in fazlar))
+    else:
+        talep = talep_yaz(klasor, sayimlar, sure_s, olcek, surucu)
+        ofset = 0.0
+    sinyal = sinyal_yaz(klasor, ag, fazlar, ofset)
     return yapilandirma_yaz(klasor, ag, talep, sinyal, sure_s)
 
 
@@ -272,6 +327,14 @@ def sim_faz0(yol: str = "data/sinyal_plani.json", isinma_s: float = 120.0) -> fl
     p = json.load(open(yol, encoding="utf-8"))
     C = float(p["dongu_s"])
     return -((float(p["bizim"]["guneye_sol"]["baslangic_s"]) + isinma_s) % C)
+
+
+def kayit_faz0(gelis: str = VARSAYILAN_GELIS, yol: str = "data/sinyal_plani.json") -> float:
+    """Simülasyon kaydında döngü hizası (kuyruk_profili'nin faz0'ı). Gerçek gelişlerde kayıt
+    saniyesi video saniyesidir ve sinyal videoyla hizalıdır: videonunkiyle aynı faz0."""
+    if gelis == "gercek":
+        return float(json.load(open(yol, encoding="utf-8"))["faz0_video_s"])
+    return sim_faz0(yol)
 
 
 def plan_videodan(yol: str = "data/sinyal_plani.json") -> tuple[dict, float]:

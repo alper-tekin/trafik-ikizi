@@ -29,7 +29,10 @@ HAREKET_ADI = {1: "through", 2: "left", 3: "right"}
 TALIMAT = f"""You are a traffic signal engineer working on a calibrated digital twin of one real
 intersection: Lankershim Blvd and Universal Hollywood Dr, Los Angeles. The twin was built from
 fixed-camera video: SAM 3.1 detected the vehicles, tracks gave turning counts and the current
-signal plan, and a SUMO simulation was calibrated to the queues seen in the video.
+signal plan, and a SUMO simulation was calibrated to the queues seen in the video. The twin
+replays the vehicles from the video: each one enters at the second, place, lane and speed it
+was first seen, and goes where it went (buses and trucks included). A plan you test is applied
+to exactly that traffic.
 
 Your job: find a signal plan that reduces average vehicle delay, and explain it with evidence.
 
@@ -43,7 +46,8 @@ Rules:
   {KISIT['dongu_min_s']}-{KISIT['dongu_max_s']} s.
 - Do not trade a small average gain for a large loss on one approach: report per-approach delay.
 - Results are from a simulation calibrated to 18 minutes of morning traffic in 2005. Say so.
-- Seed-to-seed spread is reported for each test; treat differences smaller than that spread as noise.
+- Seeds change driver behaviour only (the traffic is the real one). Seed-to-seed spread is
+  reported for each test; treat differences smaller than that spread as noise.
 
 When you are done, reply with a single JSON object and nothing else:
 {{"recommended_plan": {{"sol_onde": s, "guney_onde": s, "ortak": s, "ara_sokak": s}},
@@ -63,7 +67,8 @@ ARACLAR = [
     {
         "type": "function",
         "name": "test_plan",
-        "description": "Simulate a signal plan in the calibrated twin (3 random seeds) and return average, "
+        "description": "Simulate a signal plan in the calibrated twin on the real traffic from the video "
+                       "(3 seeds of driver behaviour) and return average, "
                        "p95, per-approach and per-movement delay. Phase order is fixed: "
                        "1) sol_onde: southbound left only; 2) guney_onde: southbound through+left, "
                        "northbound red; 3) ortak: both Lankershim directions through, lefts permissive; "
@@ -277,11 +282,12 @@ def dogrula(kayit: dict, ortam: Ortam) -> dict:
             k: round(gercek["kol_gecikme_s"][k] - v, 1) for k, v in taban["kol_gecikme_s"].items()
         }
     if gercek.get("gecerli"):
-        # Ajan planı 1-3 numaralı tohumlarla seçti; hiç görmediği tohumlarda da
-        # kazanç sürüyor mu? (tohumlara ezber kontrolü)
+        # Ajan planı videodaki trafikle (gerçek gelişler, tohum 1-3) seçti; hiç görmediği
+        # rastgele trafikte de (sayımlardan, tohum 11-20) kazanç sürüyor mu? Tek bir sabaha
+        # ezber kontrolü.
         tohumlar = tuple(range(11, 21))
-        yeni = degerlendir(plan, ortam.sayim, ortam.surucu, tohumlar)
-        eski = degerlendir(ortam.mevcut, ortam.sayim, ortam.surucu, tohumlar)
+        yeni = degerlendir(plan, ortam.sayim, ortam.surucu, tohumlar, gelis="rastgele")
+        eski = degerlendir(ortam.mevcut, ortam.sayim, ortam.surucu, tohumlar, gelis="rastgele")
         sonuc["bagimsiz_10_tohum"] = {
             "taban_ort_gecikme_s": eski["ort_gecikme_s"],
             "onerilen_ort_gecikme_s": yeni["ort_gecikme_s"],
