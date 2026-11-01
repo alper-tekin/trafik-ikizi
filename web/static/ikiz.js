@@ -317,6 +317,50 @@ function vehiclesAt(sim, t) {
   return out;
 }
 
+// ---------------------------------------------------------------- canlı bekleme sayacı
+// Gelen araç durduğu (hız < 0,5 m/s, fren lambasıyla aynı eşik) her an sayacı artar; durma
+// çizgisini geçip kavşağa girince sayaç kalkar. kare(i): o karedeki [id, u, w, hız] listesi.
+// Dönüş: kare başına Map(id -> saniye), yalnızca bekleme > 0 olan ve henüz geçmemiş araçlar.
+function kavsagaGirdi(u, w) {
+  let en = null, enD = -Infinity;
+  for (const g of Object.values(AG.olculen)) { const d = u * g.e[0] + w * g.e[1]; if (d > enD) { enD = d; en = g; } }
+  return enD < en.durma_m - 0.5;
+}
+
+function beklemeSayaclari(n, dt, kare) {
+  const bek = new Map(), gecti = new Set(), out = [];
+  for (let i = 0; i < n; i++) {
+    const m = new Map();
+    for (const [id, u, w, hiz] of kare(i)) {
+      if (gecti.has(id)) continue;
+      if (kavsagaGirdi(u, w)) { gecti.add(id); continue; }
+      const s = (bek.get(id) || 0) + (hiz < 0.5 ? dt : 0);
+      bek.set(id, s);
+      if (s > 0) m.set(id, s);
+    }
+    out.push(m);
+  }
+  return out;
+}
+
+// Bekleme saniyesi aracın tavanına, koyu kenarlı yazılır (kuyrukta yan şeritlerle çakışmasın);
+// 30 s'yi geçince kırmızı. (u, w) aracın ortası.
+function beklemeYaz(ctx, gr, u, w, s) {
+  if (s < 1) return;
+  const [x, y] = gr.P(u, w), fs = Math.max(7, Math.min(15, Math.round(gr.olcek(u, w) * 1.6)));
+  ctx.font = `700 ${fs}px system-ui`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineWidth = Math.max(2, fs / 4); ctx.strokeStyle = 'rgba(13,17,23,0.95)'; ctx.lineJoin = 'round';
+  ctx.strokeText(String(Math.floor(s)), x, y);
+  ctx.fillStyle = s >= 30 ? '#ff8a8a' : '#ffffff'; ctx.fillText(String(Math.floor(s)), x, y);
+  ctx.textAlign = 'start'; ctx.textBaseline = 'alphabetic';
+}
+
+// SUMO konumu ön tampondur; etiket gövdenin ortasına.
+function govdeOrtasi(v) {
+  const a = v[4] * Math.PI / 180, yarim = /^[KGDB][slr]B/.test(String(v[0])) ? 5 : 2.3;
+  return [v[1] - Math.cos(a) * yarim, v[2] - Math.sin(a) * yarim];
+}
+
 function stoppedNear(vs) { return vs.filter(v => v[3] < 0.5 && Math.hypot(v[1], v[2]) < 75).length; }
 
 function drawTwin(cv, sim, t) {
@@ -326,6 +370,10 @@ function drawTwin(cv, sim, t) {
   drawSignals(ctx, gr, ph.f.durum);
   const vs = vehiclesAt(sim, t);
   for (const v of vs) drawCar(ctx, gr, v);
+  // kayıt 2 Hz; sayaçlar bir kez hesaplanır (kayıt penceresinin başında sıfırdan başlar)
+  if (!sim._sayac) { const fr = frameMap(sim); sim._sayac = beklemeSayaclari(fr.length, 0.5, i => [...fr[i].values()].map(v => [v[0], v[1], v[2], v[3]])); }
+  const sayac = sim._sayac[Math.min(Math.floor(t * 2), sim._sayac.length - 1)];
+  for (const v of vs) if (sayac.has(v[0])) beklemeYaz(ctx, gr, ...govdeOrtasi(v), sayac.get(v[0]));
   if (sim._bekleme) armLabels(ctx, gr, sim._bekleme);
   return { ph, stopped: stoppedNear(vs) };
 }
@@ -355,6 +403,11 @@ function bevStart() {
     return { u: p[0], w: p[1], h: p[2], buyuk: !!p[3], hiz: yol / 0.8, aci: yon.get(id) ?? varsayilan };
   }
 
+  // canlı bekleme sayaçları (5 fps), videonun başından
+  const sayac = beklemeSayaclari(kareler.length, 0.2, i => [...(kareler[i]?.keys() || [])].map(id => {
+    const a = aracDurumu(i, id); return [id, a.u, a.w, a.hiz];
+  }));
+
   function draw() {
     const t = video.currentTime, f = t * 5, i = Math.floor(f), k = f - i;
     const { ctx, gr } = setupCanvas(cv);
@@ -369,6 +422,10 @@ function bevStart() {
       if (!a) continue;
       const b = aracDurumu(i + 1, id) || a, da = ((b.aci - a.aci + 540) % 360) - 180;
       drawCar(ctx, gr, [id, a.u + (b.u - a.u) * k, a.w + (b.w - a.w) * k, a.hiz, a.aci + da * k], MOVE_RENK[a.h], false, a.buyuk);
+    }
+    for (const [id, s] of sayac[i] || []) {
+      const a = aracDurumu(i, id);
+      if (a) beklemeYaz(ctx, gr, a.u, a.w, s);
     }
     ctx.fillStyle = '#8b949e'; ctx.font = `${Math.round(gr.W / 46)}px system-ui`;
     ctx.fillText(`${simdi.size} tracked · ${faz.ad} · t = ${t.toFixed(1)} s`, gr.W / 40, gr.H - gr.W / 40);
