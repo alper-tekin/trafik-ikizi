@@ -47,8 +47,17 @@ def _esle(izler, indeksler, tahmin, noktalar, bos_nokta, kapi_ft):
         return []
     bos = sorted(bos_nokta)
     maliyet = np.linalg.norm(tahmin[indeksler][:, None, :] - noktalar[bos][None, :, :], axis=2)
-    satir, sutun = linear_sum_assignment(maliyet)
-    return [(indeksler[i], bos[j]) for i, j in zip(satir, sutun) if maliyet[i, j] <= kapi_ft]
+    # Kapı DIŞINDAKİ çiftler eniyilemeye katılmamalı. Önce tam eşleştirip
+    # sonra uzak çiftleri atmak, iki geçerli eşleşme yerine yalnızca birini
+    # bırakabiliyor. Her iz için boşta kalma seçeneği eklenir; ceza, tüm
+    # geçerli mesafelerin toplamından büyük olduğundan önce geçerli eşleşme
+    # sayısı, sonra toplam mesafe eniyilenir.
+    bos_ceza = (len(indeksler) + 1) * (max(kapi_ft, 0.0) + 1.0)
+    izinli = np.full((len(indeksler), len(bos) + len(indeksler)), bos_ceza)
+    izinli[:, :len(bos)] = np.where(maliyet <= kapi_ft, maliyet, 2 * bos_ceza)
+    satir, sutun = linear_sum_assignment(izinli)
+    return [(indeksler[i], bos[j]) for i, j in zip(satir, sutun)
+            if j < len(bos) and maliyet[i, j] <= kapi_ft]
 
 
 def takip_et(

@@ -85,13 +85,13 @@
 
 <section>
   <h2>1 · See</h2>
-  <h3>SAM 3.1 finds every vehicle; tracking turns detections into paths</h3>
+  <h3>SAM 3.1 detects vehicles; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
      2-second track trails. Right: the same tracked cars on a top-down map turned to match the video, synced to it.
      The camera calibration matches SAM detections to NGSIM ground positions, with no hand-placed points. The signal lights show the plan
      recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
-    <div class="card"><video id="video" src="/static/video_katman.mp4" controls muted playsinline preload="metadata"></video></div>
+    <div class="card"><video id="video" controls muted playsinline preload="metadata"></video></div>
     <div class="card twin"><canvas id="bev"></canvas>
       <div class="legend"><span><i style="background:var(--thru)"></i>through</span><span><i style="background:var(--left)"></i>left turn</span>
         <span><i style="background:var(--right)"></i>right turn</span><span><i style="background:var(--unk)"></i>not classified</span>
@@ -125,7 +125,7 @@
   <h3>A Muse Spark agent tests plans in the twin</h3>
   <p class="lead">The agent can only state numbers that came from its tools: the intersection summary,
      video queue evidence, the Webster textbook plan, and simulation runs on the video's own traffic (3 seeds of driver
-     behaviour). A verifier then re-runs its recommendation, including on 10 random mornings the agent never saw.</p>
+     behaviour). A verifier then re-runs its recommendation, including with synthetic flows and 10 driver seeds. This is a robustness check, not independent video evidence.</p>
   <div class="row" style="margin-bottom:12px">
     <button id="run">Replay the recorded agent run</button>
     <button id="runLive" class="ghost" hidden>Run live (uses API credits)</button>
@@ -161,6 +161,7 @@
     <table id="waitTable"></table>
     <div class="note">Time stopped (below 0.1 m/s) anywhere on the approach, not only inside the camera view.</div>
     <div id="aracNote" class="note" style="margin-top:8px"></div>
+    <div id="demandStatus" class="note" style="margin-top:8px"></div>
   </div>
   <div class="card" style="margin-top:14px" id="entryAudit" hidden>
     <h4>Delay including time before entry</h4>
@@ -177,7 +178,7 @@
         <option value="onerilen">Right: agent's plan</option><option value="uyarlamali_saf">Right: adaptive, longest wait first</option>
         <option value="uyarlamali_agirlikli">Right: adaptive, weighted wait</option></select>
       <select id="simTraffic" class="ghost" title="Traffic in the twin">
-        <option value="gercek">Traffic: vehicles from the video</option><option value="rastgele">Traffic: random arrivals</option></select>
+        <option value="gercek">Traffic: vehicles from the video</option><option value="rastgele">Traffic: synthetic arrivals</option></select>
       <select id="simSpeed" class="ghost"><option value="1">1×</option><option value="4" selected>4×</option><option value="10">10×</option></select>
       <input id="simT" type="range" min="0" max="299" step="0.1" value="0" style="flex:1">
       <span class="pill" id="simClock">0:00</span>
@@ -218,6 +219,7 @@ async function load() {
   const veri = n => fetch(`/veri/${n}.json`, { cache: 'no-cache' }).then(r => r.json());
   [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', RASTGELE ? 'sim_mevcut_rastgele' : 'sim_mevcut',
     (SAG === 'onerilen' ? 'sim_onerilen' : `sim_${SAG}`) + (RASTGELE ? '_rastgele' : ''), 'sim_ag'].map(veri));
+  $('#video').src = '/static/video_katman.mp4?v=' + encodeURIComponent(OZET.video_version || 'legacy');
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
   entryAccounting();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
@@ -234,7 +236,7 @@ async function entryAccounting() {
       return;
     }
     const audit = await response.json();
-    $('#entryScope').textContent = `Same arrivals from the video · ${audit.seeds.length} driver seeds (${audit.seeds.join(', ')}) · separate audit from the 10-seed table above.`;
+    $('#entryScope').textContent = `Same arrivals from the video · ${audit.seeds.length} driver seeds (${audit.seeds.join(', ')}) · completed journeys.`;
     const names = { current: 'Current plan', agent_recorded: "Agent’s fixed plan", longest_wait: 'Longest wait first', weighted: 'Weighted wait' };
     const seconds = value => Number.isFinite(value) ? value.toFixed(1) + ' s' : '—';
     $('#entryTable').innerHTML = '<tr><th>Plan</th><th>Inside network</th><th>Before entry</th><th>Combined loss</th><th>Demand completed</th></tr>' +
@@ -247,7 +249,7 @@ async function entryAccounting() {
         return `<tr><td>${name}</td><td>${seconds(result.ort_gecikme_s)}</td><td>${seconds(result.ort_giris_gecikmesi_s)}</td>` +
           `<td><b>${seconds(result.ort_toplam_kayip_s)}</b></td><td>${status}</td></tr>`;
       }).join('');
-    $('#entryState').textContent = 'Recorded comparison of existing policies; no new controller tuning. All results are simulated.';
+    $('#entryState').textContent = 'Recorded comparison with identical arrivals and driver seeds. All results are simulated.';
   } catch {
     $('#entryState').textContent = 'The comparison is currently unavailable.';
   }
@@ -257,8 +259,8 @@ function kpis() {
   const t = OZET.takip, c = OZET.sayimlar, k = OZET.kalibrasyon, a = OZET.ajan.dogrulama;
   const ng = c.reduce((s, r) => s + r.ngsim, 0), us = c.reduce((s, r) => s + r.bizim, 0);
   const items = [
-    [(t.hata_medyan_ft * 0.3048).toFixed(1) + ' m', 'median position error vs ground truth'],
-    [Math.round(t.kapsama * 100) + '%', 'ground-truth vehicles tracked'],
+    [(t.hata_medyan_ft * 0.3048).toFixed(1) + ' m', 'median matched position error vs NGSIM'],
+    [Math.round(t.kapsama * 100) + '%', 'reference vehicle positions tracked'],
     [((us - ng) / ng * 100).toFixed(1) + '%', `vehicle count error (${us} vs ${ng})`],
     [OZET.sinyal.dongu_s + ' s', `signal cycle found (ground truth ${OZET.sinyal.ngsim_dongu_s} s)`],
     [`${a.taban_gecikme_simulasyon} → ${a.onerilen_gecikme_simulasyon} s`,
@@ -308,8 +310,8 @@ function queues() {
     options: { scales: { x: { title: { display: true, text: 'second of cycle' }, ticks: { maxTicksLimit: 11 } }, y: { title: { display: true, text: 'stopped vehicles' }, beginAtZero: true } } }
   });
   mk('K', $('#qK')); mk('G', $('#qG'));
-  $('#calNote').textContent = `Queue profile error of the twin: ${k.en_iyi.rmse_ngsim.toFixed(1)} vehicles against ground truth. ` +
-    `The video itself is ${k.video_vs_ngsim_rmse.toFixed(1)} off, which is the floor for this measurement. The largest gains came from the lead-lag phase order and the turn-bay lane counts, not from driver parameters.`;
+  $('#calNote').textContent = `Queue profile error of the twin: ${k.en_iyi.rmse_ngsim.toFixed(1)} vehicles against the NGSIM reference. ` +
+    `The video-to-reference difference is ${k.video_vs_ngsim_rmse.toFixed(1)} vehicles. NGSIM also informed camera calibration, so this is not an independent test.`;
 }
 
 // --- yol başına bekleme ---
@@ -336,8 +338,9 @@ function waits() {
     <p><b>From west</b>: ground truth reads low (${w.ngsim.B.ort_s} s) because NGSIM only starts tracking side-street cars close to
       the intersection. The twin (${w.ikiz.B.ort_s} s) is the least certain value here.</p>`;
   const p = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'], rows = Object.keys(p.mevcut.kol_bekleme_s);
+  const seedCount = OZET.karsilastirma_tohumlari?.length || 10;
   $('#waitTitle').textContent = 'Average wait per vehicle, by approach · full simulation, ' + (RASTGELE
-    ? '10 seeds of random arrivals the agent never saw' : 'the vehicles from the video, 10 seeds of driver behaviour');
+    ? `synthetic flows, ${seedCount} driver seeds` : `the vehicles from the video, ${seedCount} driver seeds`);
   const aa = OZET.bekleme.arac_arac, ua = OZET.bekleme[`arac_arac_${SAG}`];
   const sOrt = ua ? ua.ort_s : aa.ort_s.onerilen, az = ua ? ua.mevcuttan_daha_az_pay : aa.onerilende_daha_az_pay,
         fazla = ua ? ua.mevcuttan_daha_fazla_pay : aa.onerilende_daha_fazla_pay;
@@ -346,6 +349,12 @@ function waits() {
     ${sOrt} s. Under the ${SAG_KISA[SAG]} ${Math.round(az * 100)}% of these vehicles wait at least 1 s less
     and ${Math.round(fazla * 100)}% at least 1 s more. Hover over a car in the twin to see its own numbers.`;
   const sag = p[SAG];
+  const completed = [p.mevcut.tam_karsilastirma, sag.tam_karsilastirma];
+  $('#demandStatus').textContent = completed.every(x => x === true)
+    ? 'All scheduled vehicles finished in every displayed run.'
+    : completed.some(x => x === false)
+      ? 'Incomplete or uncertain demand: these averages describe completed journeys only.'
+      : 'Completion accounting is unavailable in this historical dataset.';
   $('#waitTable').innerHTML = `<tr><th>Approach</th><th></th><th>Current plan</th><th>${SAG_AD[SAG]}</th><th>Change</th></tr>` +
     rows.map(k => { const a = p.mevcut.kol_bekleme_s[k], b = sag.kol_bekleme_s[k], d = +(b - a).toFixed(1);
       return `<tr><td>${ARM_NAME[ARM_EN[k]]}</td><td></td><td>${a} s</td><td>${b} s</td>
@@ -396,7 +405,7 @@ function recHtml(c, d) {
       ${d.kol_gecikme_farki_s ? (() => { const f = d.kol_gecikme_farki_s, worse = Object.entries(f).filter(([, x]) => x > 0.5);
           return chk(!worse.length, worse.length ? 'Approaches that get worse: ' + worse.map(([k, x]) => `${k} +${x} s`).join(', ')
             : 'No approach gets worse by more than 0.5 s (' + Object.entries(f).map(([k, x]) => `${k} ${x > 0 ? '+' : ''}${x}`).join(', ') + ')'); })() : ''}
-      ${v ? chk(v.onerilen_tohum_araligi_s[1] < v.taban_tohum_araligi_s[0], `Holds on 10 random mornings the agent never saw: ${v.taban_ort_gecikme_s} → ${v.onerilen_ort_gecikme_s} s (ranges ${v.taban_tohum_araligi_s.join('–')} vs ${v.onerilen_tohum_araligi_s.join('–')})`) : ''}
+      ${v ? chk(v.onerilen_tohum_araligi_s[1] < v.taban_tohum_araligi_s[0], `Synthetic flows, 10 driver seeds: ${v.taban_ort_gecikme_s} → ${v.onerilen_ort_gecikme_s} s (ranges ${v.taban_tohum_araligi_s.join('–')} vs ${v.onerilen_tohum_araligi_s.join('–')}); not an independent video test`) : ''}
     </div>` : ''}`;
 }
 

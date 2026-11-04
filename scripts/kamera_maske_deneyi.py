@@ -5,6 +5,7 @@ The configured off-road region was reviewed in video, not chosen by score.
 """
 
 from datetime import datetime, timezone
+import argparse
 import json
 from pathlib import Path
 import sys
@@ -51,16 +52,21 @@ def reference_check(tracks, reference, h, offset):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--control", action="store_true", help="Also rerun the same tracker without image exclusions")
+    args = parser.parse_args()
     config_path = ROOT / "config/kamera2_experiment.json"
     source = ROOT / "data/tespit/vehicle.jsonl"
     config = json.loads(config_path.read_text(encoding="utf-8"))
-    frames, removed, total = [], 0, 0
+    frames, raw_frames, removed, total = [], [], 0, 0
     original_hashes = {str(p.relative_to(ROOT)): sha256(p) for p in [
         source, ROOT / "data/izler_kamera2.parquet", ROOT / "data/akis_izler.parquet",
         ROOT / "data/gelisler.parquet", ROOT / "web/veri/ozet.json"]}
     for line in source.read_text(encoding="utf-8").splitlines():
         row = json.loads(line)
         boxes = np.asarray(row["kutular"], dtype=float).reshape(-1, 5)
+        if args.control:
+            raw_frames.append((row["kare"], boxes[:, :4]))
         filtered = dislama_uygula(boxes, config["exclusions"])
         total += len(boxes)
         removed += len(boxes) - len(filtered)
@@ -79,10 +85,21 @@ def main():
     flow.to_parquet(output / "flow.parquet", index=False)
     baseline_tracks = pd.read_parquet(ROOT / "data/izler_kamera2.parquet")
     baseline_flow = pd.read_parquet(ROOT / "data/akis_izler.parquet")
+    variants = [("baseline", baseline_tracks, baseline_flow), ("candidate", tracks, flow)]
+    if args.control:
+        raw_frames.sort(key=lambda x: x[0])
+        control_tracks = takip_et(raw_frames, h)
+        control_flow = siniflandir(control_tracks)
+        control_sizes = control_tracks.groupby("iz").boy.median()
+        control_flow = control_flow.assign(boy_ft=control_flow.iz.map(control_sizes).round(1),
+                                          buyuk=control_flow.iz.map(control_sizes > BUYUK_FT).fillna(False))
+        control_tracks.to_parquet(output / "control_tracks.parquet", index=False)
+        control_flow.to_parquet(output / "control_flow.parquet", index=False)
+        variants.insert(1, ("unfiltered_control", control_tracks, control_flow))
     reference = pd.read_parquet(ROOT / "data/ngsim/kavsak2.parquet", columns=["t", "global_x", "global_y"])
     offset = json.loads((ROOT / "data/kalibrasyon_kamera2.json").read_text())["ofset_s"]
     results = {}
-    for name, t, f in (("baseline", baseline_tracks, baseline_flow), ("candidate", tracks, flow)):
+    for name, t, f in variants:
         points = olcum.noktalar_izden(t, f)
         waits = window_waits(points, 0, 1122)
         results[name] = {
@@ -94,6 +111,7 @@ def main():
                                  for i, r in waits.nlargest(12, "wait_s").iterrows()],
         }
     result = {"experiment": output.name, "config": config, "config_sha256": sha256(config_path),
+              "tracker_sha256": sha256(ROOT / "src/trafik/takip.py"),
               "source_hashes": original_hashes, "removed_detections": removed, "total_detections": total,
               "results": results, "production_activated": False,
               "limitations": "Retrospective camera-specific exclusion; reference sampling is every 2 s, not the full tracking benchmark. Candidate IDs differ; do not pair baseline/candidate by numeric ID."}

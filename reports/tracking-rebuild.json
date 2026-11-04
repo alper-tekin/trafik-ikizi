@@ -1,0 +1,420 @@
+{
+  "pipeline_id": "pipeline-20261104T203900384894Z",
+  "date_local": "2026-11-05",
+  "source_revision_before_changes": "9e0408f976b42d7e9fc0f5b62812a8e46914153c",
+  "matching_fix": "Distance gating before assignment, with explicit unmatched-track options",
+  "old_no_mask_control_reproduced_saved_tracks_exactly": true,
+  "roi_exclusion_enabled": false,
+  "tracking_before": {
+    "iz_sayisi": 1755,
+    "gercek_arac_sayisi": 1149,
+    "kapsama": 0.9041171252329507,
+    "hata_medyan_ft": 2.766008184328838,
+    "hata_p90_ft": 8.567026429016751,
+    "parca_medyan": 1.0,
+    "tek_izde_arac_orani": 0.525674499564839,
+    "baskin_iz_payi_medyan": 1.0,
+    "baskin_pay_90_ustu_arac_orani": 0.8093994778067886
+  },
+  "tracking_after": {
+    "iz_sayisi": 1710,
+    "gercek_arac_sayisi": 1148,
+    "kapsama": 0.9117778526582174,
+    "hata_medyan_ft": 2.7724948743477027,
+    "hata_p90_ft": 8.558919429288197,
+    "parca_medyan": 1.0,
+    "tek_izde_arac_orani": 0.5627177700348432,
+    "baskin_iz_payi_medyan": 1.0,
+    "baskin_pay_90_ustu_arac_orani": 0.8344947735191638
+  },
+  "classification_before_n": 1186,
+  "classification_after_n": 1191,
+  "ngsim_reference_count_n": 1149,
+  "count_error_before_pct": 3.2201914708442025,
+  "count_error_after_pct": 3.6553524804177506,
+  "masked_vs_unmasked_fixed_tracker_flow_counts": {
+    "unfiltered_control": {
+      "B": 78,
+      "D": 66,
+      "G": 430,
+      "K": 617
+    },
+    "candidate": {
+      "B": 78,
+      "D": 66,
+      "G": 430,
+      "K": 617
+    }
+  },
+  "signal_plan": {
+    "dongu_s": 101,
+    "faz0_video_s": 67.0,
+    "bizim": {
+      "kuzey_guney": {
+        "baslangic_s": 0,
+        "sure_s": 47
+      },
+      "guneye_duz": {
+        "baslangic_s": 99,
+        "sure_s": 49
+      },
+      "kuzeye_duz": {
+        "baslangic_s": 12,
+        "sure_s": 32
+      },
+      "guneye_sol": {
+        "baslangic_s": 85,
+        "sure_s": 35
+      },
+      "dogu_bati": {
+        "baslangic_s": 64,
+        "sure_s": 25
+      }
+    },
+    "ngsim": {
+      "kuzey_guney": {
+        "baslangic_s": 0,
+        "sure_s": 47
+      },
+      "guneye_duz": {
+        "baslangic_s": 100,
+        "sure_s": 48
+      },
+      "kuzeye_duz": {
+        "baslangic_s": 12,
+        "sure_s": 32
+      },
+      "guneye_sol": {
+        "baslangic_s": 85,
+        "sure_s": 35
+      },
+      "dogu_bati": {
+        "baslangic_s": 49,
+        "sure_s": 39
+      }
+    },
+    "ngsim_dongu_s": 101
+  },
+  "driver_calibration": {
+    "en_iyi": {
+      "tau": 0.8,
+      "accel": 1.5,
+      "rmse_video": 1.7673080316336929,
+      "rmse_ngsim": 3.2062060060089754,
+      "ort_kuyruk": {
+        "K": 7.42,
+        "G": 4.63
+      }
+    },
+    "varsayilan": {
+      "tau": 1.0,
+      "accel": 2.0,
+      "rmse_video": 1.804434964673427,
+      "rmse_ngsim": 3.2184151893434656,
+      "ort_kuyruk": {
+        "K": 7.32,
+        "G": 4.64
+      }
+    },
+    "video_ort_kuyruk": {
+      "K": 8.94,
+      "G": 5.48
+    },
+    "ngsim_ort_kuyruk": {
+      "K": 8.52,
+      "G": 7.57
+    },
+    "video_vs_ngsim_rmse": 2.333256619855595
+  },
+  "current_plan": {
+    "sol_onde": 14,
+    "guney_onde": 14,
+    "ortak": 32,
+    "ara_sokak": 33
+  },
+  "recommended_plan": {
+    "sol_onde": 14,
+    "guney_onde": 14,
+    "ortak": 35,
+    "ara_sokak": 30
+  },
+  "verification": {
+    "gecerli_json": true,
+    "onerilen_plan_test_edildi": true,
+    "onerilen_gecikme_bildirilen": 17.9,
+    "onerilen_gecikme_simulasyon": 17.9,
+    "taban_gecikme_bildirilen": 19.4,
+    "taban_gecikme_simulasyon": 19.4,
+    "plan_kisitlara_uygun": true,
+    "tum_talep_tamamlandi": true,
+    "taban_toplam_kayip_s": 22.0,
+    "onerilen_toplam_kayip_s": 19.7,
+    "kol_gecikme_farki_s": {
+      "from west": 0.9,
+      "from east": 0.5,
+      "from south (northbound)": -1.0,
+      "from north (southbound)": -2.4
+    },
+    "bagimsiz_10_tohum": {
+      "bagimsiz_veri": false,
+      "kapsam": "Synthetic flows derived from the same video counts; 10 driver seeds, not independent mornings",
+      "taban_ort_gecikme_s": 24.6,
+      "onerilen_ort_gecikme_s": 23.2,
+      "taban_tohum_araligi_s": [
+        24.2,
+        25.0
+      ],
+      "onerilen_tohum_araligi_s": [
+        22.9,
+        23.5
+      ]
+    }
+  },
+  "agent_recovery": {
+    "reason": "Provider rejected unsupported tool_choice=none after 12 completed tool steps",
+    "steps_reconstructed_from_cached_trip_outputs": true,
+    "new_tool_steps_executed": 0,
+    "original_run_usage_available": false,
+    "partial_model_response_completed_locally": true,
+    "evidence_and_caveats_author": "local verifier, not the model"
+  },
+  "api_cost": {
+    "complete": false,
+    "list_price_usd_known": 0.03129175,
+    "scope": "Final summary request only. Original 12-step attempt usage was lost before checkpointing; total cost is not measured.",
+    "price_source": "https://dev.meta.ai/docs/pricing-rate-limits"
+  },
+  "comparison": {
+    "current": {
+      "kol_bekleme_s": {
+        "from west": 5.4,
+        "from east": 7.9,
+        "from south (northbound)": 11.5,
+        "from north (southbound)": 13.3
+      },
+      "kol_gecikme_s": {
+        "from west": 11.8,
+        "from east": 15.6,
+        "from south (northbound)": 18.7,
+        "from north (southbound)": 21.3
+      },
+      "ort_gecikme_s": 19.4,
+      "arac_basi_durma_bekleme_s": 11.8,
+      "ort_giris_gecikmesi_s": 2.6,
+      "ort_toplam_kayip_s": 22.0,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "p95_gecikme_s": 66.6,
+      "p95_bekleme_s": 55.0,
+      "en_uzun_bekleme_s": 93.0,
+      "tamamlanan_arac": 1191,
+      "ort_gecikme_tohum_araligi_s": [
+        19.3,
+        19.6
+      ]
+    },
+    "agent_recorded": {
+      "kol_bekleme_s": {
+        "from west": 6.1,
+        "from east": 8.2,
+        "from south (northbound)": 10.8,
+        "from north (southbound)": 11.2
+      },
+      "kol_gecikme_s": {
+        "from west": 12.7,
+        "from east": 16.1,
+        "from south (northbound)": 17.7,
+        "from north (southbound)": 18.9
+      },
+      "ort_gecikme_s": 17.9,
+      "arac_basi_durma_bekleme_s": 10.5,
+      "ort_giris_gecikmesi_s": 1.8,
+      "ort_toplam_kayip_s": 19.7,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "p95_gecikme_s": 64.8,
+      "p95_bekleme_s": 52.0,
+      "en_uzun_bekleme_s": 93.0,
+      "tamamlanan_arac": 1191,
+      "ort_gecikme_tohum_araligi_s": [
+        17.8,
+        18.0
+      ]
+    },
+    "longest_wait": {
+      "kol_bekleme_s": {
+        "from west": 17.0,
+        "from east": 10.3,
+        "from south (northbound)": 8.1,
+        "from north (southbound)": 10.2
+      },
+      "kol_gecikme_s": {
+        "from west": 24.5,
+        "from east": 18.1,
+        "from south (northbound)": 14.9,
+        "from north (southbound)": 18.9
+      },
+      "ort_gecikme_s": 17.8,
+      "arac_basi_durma_bekleme_s": 9.9,
+      "ort_giris_gecikmesi_s": 5.2,
+      "ort_toplam_kayip_s": 23.0,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "p95_gecikme_s": 61.6,
+      "p95_bekleme_s": 47.7,
+      "en_uzun_bekleme_s": 114.0,
+      "tamamlanan_arac": 1191,
+      "ort_gecikme_tohum_araligi_s": [
+        17.6,
+        17.9
+      ]
+    },
+    "weighted": {
+      "kol_bekleme_s": {
+        "from west": 17.1,
+        "from east": 9.7,
+        "from south (northbound)": 6.0,
+        "from north (southbound)": 14.2
+      },
+      "kol_gecikme_s": {
+        "from west": 25.4,
+        "from east": 17.8,
+        "from south (northbound)": 12.8,
+        "from north (southbound)": 24.8
+      },
+      "ort_gecikme_s": 20.1,
+      "arac_basi_durma_bekleme_s": 11.2,
+      "ort_giris_gecikmesi_s": 3.4,
+      "ort_toplam_kayip_s": 23.5,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "p95_gecikme_s": 69.7,
+      "p95_bekleme_s": 50.0,
+      "en_uzun_bekleme_s": 134.0,
+      "tamamlanan_arac": 1191,
+      "ort_gecikme_tohum_araligi_s": [
+        19.9,
+        20.4
+      ]
+    }
+  },
+  "synthetic_arrival_audit": {
+    "seeds": [
+      11,
+      12
+    ],
+    "vehicles_per_schedule": {
+      "11": 1202,
+      "12": 1202
+    },
+    "intended_schedules_identical": true,
+    "meaning": "The current flow mode changes driver behaviour with the SUMO seed; these two seeds do not create different intended arrival schedules. This is not evidence of independent mornings."
+  },
+  "limitations": [
+    "All existing video data was already used in development; no independent video test.",
+    "Counts are 3.7% above the NGSIM reference; position accuracy is approximately unchanged.",
+    "No road/pedestrian field deployment; side-street model uncertainty remains.",
+    "The model final JSON was truncated. Complete plan/delay/summary fields were recovered; evidence/caveats were explicitly completed by the local verifier.",
+    "Original tool-search token usage was lost before checkpointing. Known $0.03129175 covers only final summarization; total API cost was not measured."
+  ]
+}

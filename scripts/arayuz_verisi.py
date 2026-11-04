@@ -10,6 +10,7 @@ Kullanım:
     PYTHONPATH=src .venv/Scripts/python scripts/arayuz_verisi.py
 """
 
+import argparse
 import json
 from pathlib import Path
 
@@ -20,10 +21,22 @@ from trafik import olcum
 from trafik.akis import BUYUK_FT, talep_sayimlari, yerel
 from trafik.simule import calistir
 from trafik.sumo_ag import faz_plani_surelerden, kayit_faz0, kur, video_ofseti
+from trafik.sprint import sha256
 
 VERI = Path("web/veri")
 SURE_S = 1122.0
 OYNATMA_S = (300.0, 600.0)  # simülasyondan gösterilecek pencere (ısınma sonrası)
+KARSILASTIRMA_ALANLARI = ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s",
+                        "ort_giris_gecikmesi_s", "ort_toplam_kayip_s", "tam_karsilastirma", "tohum_talep_durumu",
+                        "p95_gecikme_s", "p95_bekleme_s", "en_uzun_bekleme_s", "tamamlanan_arac",
+                        "ort_gecikme_tohum_araligi_s")
+
+
+def plan_ozeti(plan, sayim, surucu, tohumlar, gelis="gercek"):
+    """Bir planı ölçü başına tekrar koşturmak yerine yalnızca bir kez değerlendir."""
+    from trafik.degerlendir import degerlendir
+    sonuc = degerlendir(plan, sayim, surucu, tohumlar, gelis=gelis)
+    return {k: sonuc[k] for k in KARSILASTIRMA_ALANLARI}
 
 
 def yaz(ad: str, veri) -> None:
@@ -37,11 +50,12 @@ def profil_sozluk(q: pd.DataFrame) -> dict:
 
 def son_ajan_kosusu() -> dict:
     yollar = sorted(Path("data/ajan").glob("kosu_*.json"))
-    for yol in reversed(yollar):
-        k = json.loads(yol.read_text(encoding="utf-8"))
-        if k.get("cevap"):
-            return k
-    raise FileNotFoundError("tamamlanmış ajan koşusu yok")
+    if not yollar:
+        raise FileNotFoundError("tamamlanmış ajan koşusu yok")
+    k = json.loads(yollar[-1].read_text(encoding="utf-8"))
+    if not k.get("cevap"):
+        raise ValueError("En son ajan koşusu tamamlanmamış; eski öneriye sessizce dönülmeyecek")
+    return k
 
 
 def arac_beklemeleri(d: pd.DataFrame) -> dict:
@@ -133,6 +147,12 @@ def ag_geometrisi(ag_yolu: Path) -> dict:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--seeds", nargs="+", type=int, default=list(range(11, 21)))
+    args = parser.parse_args()
+    if len(set(args.seeds)) != len(args.seeds):
+        parser.error("Seeds must be unique")
+    tohumlar = tuple(args.seeds)
     VERI.mkdir(parents=True, exist_ok=True)
     plan = json.load(open("data/sinyal_plani.json", encoding="utf-8"))
     C, faz0 = plan["dongu_s"], plan["faz0_video_s"]
@@ -180,13 +200,11 @@ def main() -> None:
             "ikiz": olcum.kol_bekleme_ozeti(olcum.bekleme_sureleri(sim_noktalari)),
         },
         "planlar_10_tohum": {
-            ad: {k: degerlendir(p, sayim, surucu, tuple(range(11, 21)))[k]
-                 for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+            ad: plan_ozeti(p, sayim, surucu, tohumlar)
             for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
         },
         "planlar_10_tohum_rastgele": {
-            ad: {k: degerlendir(p, sayim, surucu, tuple(range(11, 21)), gelis="rastgele")[k]
-                 for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+            ad: plan_ozeti(p, sayim, surucu, tohumlar, gelis="rastgele")
             for ad, p in (("mevcut", mevcut), ("onerilen", onerilen))
         },
     }
@@ -195,9 +213,9 @@ def main() -> None:
     sim_uyar = {}
     for kural in ("saf", "agirlikli"):
         for anahtar, gelis in (("planlar_10_tohum", "gercek"), ("planlar_10_tohum_rastgele", "rastgele")):
-            u = uyarlamali.degerlendir(kural, sayim, surucu, tuple(range(11, 21)), gelis=gelis)
+            u = uyarlamali.degerlendir(kural, sayim, surucu, tohumlar, gelis=gelis)
             bekleme[anahtar][f"uyarlamali_{kural}"] = {
-                k: u[k] for k in ("kol_bekleme_s", "kol_gecikme_s", "ort_gecikme_s", "arac_basi_durma_bekleme_s")}
+                k: u[k] for k in KARSILASTIRMA_ALANLARI}
             sim_uyar[(kural, gelis)] = oynatma_uyarlamali(kural, sayim, surucu, gelis)
 
     # Araç araç: aynı aracın videodaki, mevcut plandaki ve önerilen plandaki beklemesi (75 m, tohum 1)
@@ -224,6 +242,9 @@ def main() -> None:
     }
 
     ozet = {
+        "karsilastirma_tohumlari": list(tohumlar),
+        "video_version": sha256(Path("web/static/video_katman.mp4"))[:16]
+                         if Path("web/static/video_katman.mp4").is_file() else None,
         "sayimlar": pd.read_csv("data/akis_karsilastirma.csv").to_dict(orient="records"),
         "sinyal": plan,
         "kuyruk_profili": {

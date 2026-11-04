@@ -1,0 +1,12 @@
+{
+  "seeds": [
+    11,
+    12
+  ],
+  "vehicles_per_schedule": {
+    "11": 1202,
+    "12": 1202
+  },
+  "intended_schedules_identical": true,
+  "meaning": "The current flow mode changes driver behaviour with the SUMO seed; these two seeds do not create different intended arrival schedules. This is not evidence of independent mornings."
+}

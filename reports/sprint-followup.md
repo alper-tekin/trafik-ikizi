@@ -6,7 +6,7 @@ All four existing policies were run on the same original 1,186 video arrivals,
 driver parameters and seeds **1, 2, 3**. No new policy was tuned and no Meta API
 calls were made. The original in-network metrics are preserved and new fields
 report insertion delay, combined loss, p95/max stopped wait and per-seed demand
-completion. Results: [sprint-accounting.json](sprint-accounting.json).
+completion. Results: [sprint-accounting.json](sprint-accounting-9e0408f.json).
 
 | Policy | In-network loss (s) | Insertion delay (s) | Combined loss (s) | p95 stopped wait (s) | Completed |
 |---|---:|---:|---:|---:|---|

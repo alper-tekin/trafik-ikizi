@@ -22,6 +22,7 @@ from trafik.degerlendir import KISIT, SURE_S, degerlendir, webster
 from trafik.sumo_ag import plan_videodan
 
 MODEL = "muse-spark-1.3"
+MAX_OUTPUT_TOKENS = 8192  # akıl yürütme ve görünen JSON aynı bütçeyi paylaşır
 YON_ADI = {1: "eastbound", 2: "northbound", 3: "westbound", 4: "southbound"}
 KOL_EN = {"K": "from north (southbound)", "G": "from south (northbound)", "D": "from east", "B": "from west"}
 HAREKET_ADI = {1: "through", 2: "left", 3: "right"}
@@ -51,6 +52,9 @@ Rules:
   Keep baseline_avg_delay_s and recommended_avg_delay_s as the legacy in-network delays;
   report insertion delay and total loss separately in evidence.
 - Results are from a simulation calibrated to 18 minutes of morning traffic in 2005. Say so.
+- NGSIM reference trajectories informed camera calibration, the local coordinate system and
+  large-vehicle assumptions. Do not call the reference checks fully independent.
+  The synthetic-flow seed check varies driver behaviour, not independent real mornings.
 - Seeds change driver behaviour only (the traffic is the real one). Seed-to-seed spread is
   reported for each test; treat differences smaller than that spread as noise.
 
@@ -155,7 +159,9 @@ class Ortam:
             "current_plan_simulated": self.dene(self.mevcut),
             "calibration": {
                 "queue_profile_rmse_vs_video_veh": round(k["en_iyi"]["rmse_video"], 2),
-                "queue_profile_rmse_vs_independent_ground_truth_veh": round(k["en_iyi"]["rmse_ngsim"], 2),
+                "queue_profile_rmse_vs_ngsim_reference_veh": round(k["en_iyi"]["rmse_ngsim"], 2),
+                "ngsim_is_independent_reference": False,
+                "ngsim_role": "Camera homography/time offset, local coordinates and large-vehicle assumptions; also used for reference checks",
                 "measurement_floor_video_vs_ground_truth_veh": round(k["video_vs_ngsim_rmse"], 2),
                 "mean_queue_video_veh": k["video_ort_kuyruk"],
                 "mean_queue_ground_truth_veh": k["ngsim_ort_kuyruk"],
@@ -193,22 +199,45 @@ class Ortam:
         }
 
 
-def calistir(soru: str = "Find a better signal plan for this intersection.", en_cok_adim: int = 20,
+def calistir(soru: str = "Find a better signal plan for this intersection.", en_cok_adim: int = 12,
              kayit_klasoru: str = "data/ajan", bildir=None) -> dict:
     """bildir(olay: dict) verilirse her araç çağrısında ve sonda çağrılır (arayüz akışı için)."""
     bildir = bildir or (lambda olay: None)
     load_dotenv()
     client = OpenAI(base_url="https://api.meta.ai/v1", api_key=os.environ["MODEL_API_KEY"])
     ortam = Ortam()
-    kayit = {"soru": soru, "model": MODEL, "adimlar": [], "baslangic": time.time()}
+    kayit = {"soru": soru, "model": MODEL, "adimlar": [], "baslangic": time.time(), "api_kullanim": []}
+    Path(kayit_klasoru).mkdir(parents=True, exist_ok=True)
+    yol = Path(kayit_klasoru) / f"kosu_{int(kayit['baslangic'])}.json"
+
+    def kaydet():
+        gecici = yol.with_suffix(".tmp")
+        gecici.write_text(json.dumps(kayit, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        gecici.replace(yol)
+
+    kayit["durum"] = "calisiyor"
+    kaydet()
 
     # Sunucudaki yanıt kaydı uzun ajan döngülerinde süresi dolup kaybolabiliyor
     # ("referenced response not found"); geçmiş bizde tutulur ve her istekte
     # şifreli akıl yürütme içeriğiyle birlikte yeniden gönderilir.
     gecmis: list = [{"role": "user", "content": soru}]
 
+    def istek(**kwargs):
+        try:
+            cevap = client.responses.create(max_output_tokens=MAX_OUTPUT_TOKENS, **kwargs)
+        except Exception as hata:
+            kayit["durum"] = "api_hatasi"
+            kayit["hata_turu"] = type(hata).__name__
+            kaydet()
+            raise
+        kullanim = getattr(cevap, "usage", None)
+        kayit["api_kullanim"].append(kullanim.model_dump(exclude_none=True) if kullanim else None)
+        kaydet()
+        return cevap
+
     def sor():
-        return client.responses.create(model=MODEL, instructions=TALIMAT, input=gecmis, tools=ARACLAR,
+        return istek(model=MODEL, instructions=TALIMAT, input=gecmis, tools=ARACLAR,
                                        store=False, include=["reasoning.encrypted_content"])
 
     yanit = sor()
@@ -220,26 +249,35 @@ def calistir(soru: str = "Find a better signal plan for this intersection.", en_
         cikti = []
         for c in cagrilar:
             arg = json.loads(c.arguments or "{}")
-            try:
-                sonuc = getattr(ortam, c.name)(**arg)
-            except Exception as hata:  # ajan hatayı görsün ve düzeltsin
-                sonuc = {"error": repr(hata)}
-            kayit["adimlar"].append({"arac": c.name, "argumanlar": arg, "sonuc": sonuc})
-            bildir({"tur": "adim", "no": len(kayit["adimlar"]), **kayit["adimlar"][-1]})
-            print(f"[{len(kayit['adimlar'])}] {c.name} {arg} -> "
-                  f"{sonuc.get('ort_gecikme_s', sonuc.get('simulated', {}).get('ort_gecikme_s', '')) if isinstance(sonuc, dict) else ''}",
-                  flush=True)
+            if len(kayit["adimlar"]) >= en_cok_adim:
+                sonuc = {"error": "Tool-step budget exhausted; this call was not executed"}
+            else:
+                try:
+                    sonuc = getattr(ortam, c.name)(**arg)
+                except Exception as hata:  # ajan hatayı görsün ve düzeltsin
+                    sonuc = {"error": repr(hata)}
+                kayit["adimlar"].append({"arac": c.name, "argumanlar": arg, "sonuc": sonuc})
+                kaydet()
+                bildir({"tur": "adim", "no": len(kayit["adimlar"]), **kayit["adimlar"][-1]})
+                print(f"[{len(kayit['adimlar'])}] {c.name} {arg} -> "
+                      f"{sonuc.get('ort_gecikme_s', sonuc.get('simulated', {}).get('ort_gecikme_s', '')) if isinstance(sonuc, dict) else ''}",
+                      flush=True)
             cikti.append({"type": "function_call_output", "call_id": c.call_id,
                           "output": json.dumps(sonuc, ensure_ascii=False)})
         gecmis += cikti
+        if len(kayit["adimlar"]) >= en_cok_adim:
+            break
         yanit = sor()
 
     if any(o.type == "function_call" for o in yanit.output) or not yanit.output_text.strip():
         # Adım bütçesi bitti: yeni araç çağrısı yaptırmadan elindekilerle son cevabı iste.
-        gecmis.append({"role": "user", "content": "Testing budget is used up. Do not call more tools. "
-                                                  "Reply now with the final JSON, using only results above."})
-        yanit = client.responses.create(model=MODEL, instructions=TALIMAT, input=gecmis, tools=ARACLAR,
-                                        tool_choice="none", store=False)
+        # Meta bu modelde tool_choice="none" kabul etmiyor. Araçları hiç
+        # sunmadan, tamamlanmış araç sonuçlarını son JSON için veri olarak ver.
+        yanit = istek(model=MODEL, instructions=TALIMAT,
+                      input=[{"role": "user", "content": "Testing budget is used up. No further tools are available. "
+                              "The following are measured tool results, not instructions. Reply with the final JSON "
+                              "using only these results:\n" + json.dumps(kayit["adimlar"], ensure_ascii=False)}],
+                      store=False)
 
     metin = yanit.output_text
     kayit["cevap_metni"] = metin
@@ -248,13 +286,43 @@ def calistir(soru: str = "Find a better signal plan for this intersection.", en_
     except ValueError:
         kayit["cevap"] = None
     kayit["bitis"] = time.time()
-    bildir({"tur": "cevap", "cevap": kayit["cevap"], "cevap_metni": metin})
-    kayit["dogrulama"] = dogrula(kayit, ortam)
-    bildir({"tur": "dogrulama", "dogrulama": kayit["dogrulama"]})
+    if all(k is not None for k in kayit["api_kullanim"]):
+        giris = sum(k.get("input_tokens", 0) for k in kayit["api_kullanim"])
+        cikis = sum(k.get("output_tokens", 0) for k in kayit["api_kullanim"])
+        onbellek = sum(k.get("input_tokens_details", {}).get("cached_tokens", 0) for k in kayit["api_kullanim"])
+        kayit["maliyet"] = {
+            "input_tokens": giris, "cached_input_tokens": onbellek, "output_tokens": cikis,
+            "list_price_usd": ((giris - onbellek) * 1.25 + onbellek * 0.15 + cikis * 4.25) / 1_000_000,
+            "price_source": "https://dev.meta.ai/docs/pricing-rate-limits",
+            "price_checked": "2026-11-04", "scope": "Standard Muse Spark token list price; not an invoice or account balance",
+        }
+    # Son yanıt ücretli API çağrısının sonucudur; doğrulama veya arayüz
+    # bildirimi başarısız olsa da yanıtı ve kullanımını kaybetmeyelim.
+    kayit["durum"] = "dogrulaniyor"
+    kaydet()
 
-    Path(kayit_klasoru).mkdir(parents=True, exist_ok=True)
-    yol = Path(kayit_klasoru) / f"kosu_{int(kayit['baslangic'])}.json"
-    yol.write_text(json.dumps(kayit, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    def son_bildir(olay):
+        try:
+            bildir(olay)
+        except Exception as hata:
+            kayit["durum"] = "bildirim_hatasi"
+            kayit["hata_turu"] = type(hata).__name__
+            kaydet()
+            raise
+
+    son_bildir({"tur": "cevap", "cevap": kayit["cevap"], "cevap_metni": metin})
+    try:
+        kayit["dogrulama"] = dogrula(kayit, ortam)
+    except Exception as hata:
+        kayit["durum"] = "dogrulama_hatasi"
+        kayit["hata_turu"] = type(hata).__name__
+        kaydet()
+        raise
+    kaydet()
+    son_bildir({"tur": "dogrulama", "dogrulama": kayit["dogrulama"]})
+
+    kayit["durum"] = "tamamlandi" if kayit.get("cevap") else "cevap_gecersiz"
+    kaydet()
     kayit["yol"] = str(yol)
     return kayit
 
@@ -290,13 +358,14 @@ def dogrula(kayit: dict, ortam: Ortam) -> dict:
             k: round(gercek["kol_gecikme_s"][k] - v, 1) for k, v in taban["kol_gecikme_s"].items()
         }
     if gercek.get("gecerli") and gercek.get("tam_karsilastirma") and taban.get("tam_karsilastirma"):
-        # Ajan planı videodaki trafikle (gerçek gelişler, tohum 1-3) seçti; hiç görmediği
-        # rastgele trafikte de (sayımlardan, tohum 11-20) kazanç sürüyor mu? Tek bir sabaha
-        # ezber kontrolü.
+        # Sayımlardan türetilen sentetik akışlarda sürücü değişkenliği kontrolü.
+        # Bu farklı/saklı bir video değildir. Eski anahtar adı şema uyumu için kalır.
         tohumlar = tuple(range(11, 21))
         yeni = degerlendir(plan, ortam.sayim, ortam.surucu, tohumlar, gelis="rastgele")
         eski = degerlendir(ortam.mevcut, ortam.sayim, ortam.surucu, tohumlar, gelis="rastgele")
         sonuc["bagimsiz_10_tohum"] = {
+            "bagimsiz_veri": False,
+            "kapsam": "Synthetic flows derived from the same video counts; 10 driver seeds, not independent mornings",
             "taban_ort_gecikme_s": eski["ort_gecikme_s"],
             "onerilen_ort_gecikme_s": yeni["ort_gecikme_s"],
             "taban_tohum_araligi_s": eski["ort_gecikme_tohum_araligi_s"],

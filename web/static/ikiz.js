@@ -469,9 +469,9 @@ function simSetup() {
   const plan10 = OZET.bekleme[RASTGELE ? 'planlar_10_tohum_rastgele' : 'planlar_10_tohum'];
   const n = Object.keys(OZET.video_arac_bekleme || {}).length;
   $('#simLead').textContent = RASTGELE
-    ? 'Both plans run on random arrivals drawn from the measured turning counts (same seed for both), five minutes after warm-up.'
-    : `Both plans replay the same ${n} vehicles from the video: each enters at the second, place, lane and speed it was first seen
-       and goes where it went. Shown: video 5:00 to 10:00, with the current plan's signals timed as in the video.`;
+    ? 'Both plans run on synthetic flows derived from the measured turning counts (same driver seed for both), five minutes after warm-up.'
+    : `Both plans replay the same ${n} vehicles from the video: each is scheduled to enter at the second, place, lane and speed it was first seen
+       and goes where it went. Congestion can postpone entry; the comparison below includes that delay. Shown: video 5:00 to 10:00, with the current plan's signals timed as in the video.`;
   $('#simTraffic').value = RASTGELE ? 'rastgele' : 'gercek';
   $('#simTraffic').onchange = e => { const q = new URLSearchParams(location.search);
     e.target.value === 'rastgele' ? q.set('trafik', 'rastgele') : q.delete('trafik'); location.search = q; };

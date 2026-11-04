@@ -7,7 +7,7 @@ Status: **started**. This document tracks delivered work separately from planned
 | Work | Status | Exit condition |
 |---|---|---|
 | Freeze current inputs and reproduce the baseline | Implemented; see `reports/sprint-start.json` | Versioned protocol, input hashes, package versions, fresh simulation and recorded-result comparison |
-| Diagnose side-street measurement/model errors | In progress; static fixture confirmed and insertion accounting implemented | Review extreme tracks, insertion delays, signal timing and matched vehicle populations before changing calibration |
+| Diagnose side-street measurement/model errors | Matching fix and coherent rebuild delivered; side-street uncertainty remains | Review extreme tracks, insertion delays, signal timing and matched vehicle populations before changing calibration |
 | Balance the adaptive controller | Pending | Compare mean, p95, per-approach wait, completion and pedestrian service on paired demand |
 | Let Muse Spark test adaptive parameters and additional baselines | Pending | Only recommend tested candidates; use the same demand and evaluation budget |
 | Explain signal decisions in the existing UI | Pending | Show why a phase was selected, including tradeoffs |
@@ -87,9 +87,14 @@ Simulation scratch files live under `sim/`, which is ignored.
 4. Audit whether the synthetic-demand mode changes arrival schedules across seeds
    or only driver behaviour before treating its runs as different mornings.
 
-Controller/agent/UI changes have not yet been made as part of this sprint.
+Current delivery includes shared accounting, matching correction, a revalidated fixed-plan recommendation and rebuilt UI artifacts; adaptive policy changes are still pending.
 
 
 ## Follow-up delivery
 
 See [the follow-up report](../reports/sprint-followup.md). Shared fixed/adaptive accounting and the insertion-aware UI table are implemented. A narrow off-road exclusion was tested on cached detections and remains experimental. The adaptive policy itself has not yet been retuned.
+
+
+## Tracking rebuild delivery
+
+The current release uses 1,191 vehicles and comparison seeds 1,2,3, explicitly recorded in the UI. The gated matching fix removes the false long-wait identity association without enabling the experimental camera polygon. Tracking continuity improves; count error increases slightly and remains disclosed. Current numbers are in [the rebuild report](../reports/tracking-rebuild.json). The fixed-plan search was approved and limited to 12 tool steps. Its final partial response was locally completed by the verifier; total API cost could not be reconstructed. Per-step checkpointing now prevents losing future usage/results on API failure. New video evaluation and adaptive fairness remain pending.
