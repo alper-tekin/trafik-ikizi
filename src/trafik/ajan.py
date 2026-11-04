@@ -45,6 +45,11 @@ Rules:
   Lankershim then), shared Lankershim green >= {KISIT['ortak_min_s']} s, cycle
   {KISIT['dongu_min_s']}-{KISIT['dongu_max_s']} s.
 - Do not trade a small average gain for a large loss on one approach: report per-approach delay.
+- Compare ort_toplam_kayip_s (timeLoss plus insertion delay), not just ort_gecikme_s.
+  A lower in-network delay is not an improvement if vehicles wait longer outside SUMO.
+  Only recommend plans with tam_karsilastirma=true (all scheduled vehicles completed).
+  Keep baseline_avg_delay_s and recommended_avg_delay_s as the legacy in-network delays;
+  report insertion delay and total loss separately in evidence.
 - Results are from a simulation calibrated to 18 minutes of morning traffic in 2005. Say so.
 - Seeds change driver behaviour only (the traffic is the real one). Seed-to-seed spread is
   reported for each test; treat differences smaller than that spread as noise.
@@ -275,13 +280,16 @@ def dogrula(kayit: dict, ortam: Ortam) -> dict:
         "taban_gecikme_bildirilen": c.get("baseline_avg_delay_s"),
         "taban_gecikme_simulasyon": taban.get("ort_gecikme_s"),
         "plan_kisitlara_uygun": gercek.get("gecerli", False),
+        "tum_talep_tamamlandi": gercek.get("tam_karsilastirma", False),
+        "taban_toplam_kayip_s": taban.get("ort_toplam_kayip_s"),
+        "onerilen_toplam_kayip_s": gercek.get("ort_toplam_kayip_s"),
     }
-    if gercek.get("gecerli"):
+    if gercek.get("gecerli") and gercek.get("tam_karsilastirma") and taban.get("tam_karsilastirma"):
         # Ajanın "hiçbir yön kötüleşmedi" gibi iddialarını denetlemek için yön bazlı fark.
         sonuc["kol_gecikme_farki_s"] = {
             k: round(gercek["kol_gecikme_s"][k] - v, 1) for k, v in taban["kol_gecikme_s"].items()
         }
-    if gercek.get("gecerli"):
+    if gercek.get("gecerli") and gercek.get("tam_karsilastirma") and taban.get("tam_karsilastirma"):
         # Ajan planı videodaki trafikle (gerçek gelişler, tohum 1-3) seçti; hiç görmediği
         # rastgele trafikte de (sayımlardan, tohum 11-20) kazanç sürüyor mu? Tek bir sabaha
         # ezber kontrolü.

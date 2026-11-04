@@ -1,0 +1,379 @@
+{
+  "seeds": [
+    1,
+    2,
+    3
+  ],
+  "arrival_mode": "video_replay",
+  "driver_parameters": {
+    "tau": 1.2,
+    "accel": 1.5
+  },
+  "scope": "Existing observations and policies, retrospective comparison; no new controller tuning or model API calls.",
+  "results": {
+    "current": {
+      "gecerli": true,
+      "plan": {
+        "sol_onde": 15,
+        "guney_onde": 13,
+        "ortak": 32,
+        "ara_sokak": 33,
+        "dongu_s": 101
+      },
+      "ort_gecikme_s": 20.5,
+      "ort_gecikme_tohum_araligi_s": [
+        20.3,
+        20.6
+      ],
+      "p95_gecikme_s": 68.0,
+      "arac_basi_durma_bekleme_s": 12.1,
+      "p95_bekleme_s": 55.0,
+      "en_uzun_bekleme_s": 93.5,
+      "ort_giris_gecikmesi_s": 4.4,
+      "ort_toplam_kayip_s": 24.9,
+      "tamamlanan_arac": 1186,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 13.1,
+        "from east": 16.1,
+        "from south (northbound)": 18.6,
+        "from north (southbound)": 23.1
+      },
+      "kol_bekleme_s": {
+        "from west": 6.1,
+        "from east": 8.2,
+        "from south (northbound)": 11.1,
+        "from north (southbound)": 14.0
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 3.2,
+        "from east": 0.2,
+        "from south (northbound)": 9.2,
+        "from north (southbound)": 1.7
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 16.2,
+        "from east": 16.4,
+        "from south (northbound)": 27.8,
+        "from north (southbound)": 24.8
+      },
+      "hareket_gecikme_s": {
+        "from west left": 16.5,
+        "from west right": 16.2,
+        "from west through": 9.3,
+        "from east left": 34.4,
+        "from east right": 11.9,
+        "from east through": 21.4,
+        "from south (northbound) left": 56.2,
+        "from south (northbound) right": 9.0,
+        "from south (northbound) through": 20.2,
+        "from north (southbound) left": 37.7,
+        "from north (southbound) right": 9.5,
+        "from north (southbound) through": 18.6
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "agent_recorded": {
+      "gecerli": true,
+      "plan": {
+        "sol_onde": 15,
+        "guney_onde": 5,
+        "ortak": 43,
+        "ara_sokak": 30,
+        "dongu_s": 101
+      },
+      "ort_gecikme_s": 18.4,
+      "ort_gecikme_tohum_araligi_s": [
+        18.4,
+        18.5
+      ],
+      "p95_gecikme_s": 60.5,
+      "arac_basi_durma_bekleme_s": 10.3,
+      "p95_bekleme_s": 48.5,
+      "en_uzun_bekleme_s": 95.5,
+      "ort_giris_gecikmesi_s": 2.2,
+      "ort_toplam_kayip_s": 20.6,
+      "tamamlanan_arac": 1186,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 13.8,
+        "from east": 16.9,
+        "from south (northbound)": 15.5,
+        "from north (southbound)": 21.2
+      },
+      "kol_bekleme_s": {
+        "from west": 6.7,
+        "from east": 9.0,
+        "from south (northbound)": 8.5,
+        "from north (southbound)": 12.1
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 3.4,
+        "from east": 0.3,
+        "from south (northbound)": 3.2,
+        "from north (southbound)": 1.5
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 17.2,
+        "from east": 17.3,
+        "from south (northbound)": 18.7,
+        "from north (southbound)": 22.7
+      },
+      "hareket_gecikme_s": {
+        "from west left": 17.2,
+        "from west right": 16.6,
+        "from west through": 10.1,
+        "from east left": 37.6,
+        "from east right": 12.1,
+        "from east through": 22.8,
+        "from south (northbound) left": 56.9,
+        "from south (northbound) right": 8.2,
+        "from south (northbound) through": 16.1,
+        "from north (southbound) left": 39.3,
+        "from north (southbound) right": 8.3,
+        "from north (southbound) through": 15.2
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "longest_wait": {
+      "gecerli": true,
+      "kural": "saf",
+      "ort_gecikme_s": 18.3,
+      "ort_gecikme_tohum_araligi_s": [
+        18.1,
+        18.4
+      ],
+      "p95_gecikme_s": 61.7,
+      "arac_basi_durma_bekleme_s": 9.8,
+      "p95_bekleme_s": 47.5,
+      "en_uzun_bekleme_s": 117.5,
+      "ort_giris_gecikmesi_s": 8.2,
+      "ort_toplam_kayip_s": 26.5,
+      "tamamlanan_arac": 1186,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 23.6,
+        "from east": 18.1,
+        "from south (northbound)": 15.9,
+        "from north (southbound)": 19.2
+      },
+      "kol_bekleme_s": {
+        "from west": 15.7,
+        "from east": 10.4,
+        "from south (northbound)": 8.9,
+        "from north (southbound)": 9.7
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 17.1,
+        "from east": 0.8,
+        "from south (northbound)": 14.0,
+        "from north (southbound)": 3.9
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 40.7,
+        "from east": 18.9,
+        "from south (northbound)": 29.9,
+        "from north (southbound)": 23.1
+      },
+      "hareket_gecikme_s": {
+        "from west left": 28.5,
+        "from west right": 11.8,
+        "from west through": 20.0,
+        "from east left": 43.7,
+        "from east right": 11.1,
+        "from east through": 29.1,
+        "from south (northbound) left": 60.2,
+        "from south (northbound) right": 8.3,
+        "from south (northbound) through": 16.5,
+        "from north (southbound) left": 37.7,
+        "from north (southbound) right": 8.3,
+        "from north (southbound) through": 12.9
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "weighted": {
+      "gecerli": true,
+      "kural": "agirlikli",
+      "ort_gecikme_s": 20.3,
+      "ort_gecikme_tohum_araligi_s": [
+        19.8,
+        20.9
+      ],
+      "p95_gecikme_s": 72.0,
+      "arac_basi_durma_bekleme_s": 10.5,
+      "p95_bekleme_s": 49.0,
+      "en_uzun_bekleme_s": 124.5,
+      "ort_giris_gecikmesi_s": 6.4,
+      "ort_toplam_kayip_s": 26.7,
+      "tamamlanan_arac": 1186,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1186,
+          "tamamlanan": 1186,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 23.2,
+        "from east": 16.6,
+        "from south (northbound)": 12.7,
+        "from north (southbound)": 25.6
+      },
+      "kol_bekleme_s": {
+        "from west": 15.0,
+        "from east": 8.7,
+        "from south (northbound)": 5.8,
+        "from north (southbound)": 13.4
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 14.3,
+        "from east": 0.3,
+        "from south (northbound)": 6.4,
+        "from north (southbound)": 6.1
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 37.5,
+        "from east": 16.9,
+        "from south (northbound)": 19.1,
+        "from north (southbound)": 31.6
+      },
+      "hareket_gecikme_s": {
+        "from west left": 26.8,
+        "from west right": 13.8,
+        "from west through": 20.7,
+        "from east left": 37.4,
+        "from east right": 10.7,
+        "from east through": 26.3,
+        "from south (northbound) left": 49.4,
+        "from south (northbound) right": 7.8,
+        "from south (northbound) through": 12.7,
+        "from north (southbound) left": 59.6,
+        "from north (southbound) right": 9.0,
+        "from north (southbound) through": 13.5
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    }
+  },
+  "input_hashes": {
+    "data/gelisler.parquet": "42e8d46a53fb183b7bee4ae6ed6132098885cd382ead49dbd251d25a396f5aa2",
+    "data/akis_izler.parquet": "b158b2452aede4530d2825e22ba224215fa7cd8783400fb5b2da613a615feda4",
+    "data/geometri.json": "1c7e2e53ac842f0462585b04ee174e5519a2ae73e32c1e76c095f7d658171bb8",
+    "data/sinyal_plani.json": "f8bad103d40ebe2eca7c80ada8e74532e9ac91880c276f960c04a20c53fd2808",
+    "data/sim_kalibrasyon.json": "adf77ca4ff993e01fd5fb09f0505c88c19fc6eb8b5303d4c40ed4dfc7b4f9413",
+    "web/veri/ozet.json": "c5b5215ffc58cf46bc2fc4050df210ed1ff3fb655dfa0fd158e81d0f6ceb6882",
+    "src/trafik/ajan.py": "ade0f6ea60c7bb6a096a04f967e7eee21c4da5a88671661637cf5e293821006b",
+    "src/trafik/akis.py": "5293a7b6dd337e8636750d31f2fcadf2dd98029f18b44d6f838510f42f2897a7",
+    "src/trafik/degerlendir.py": "13ae20f486e26df5c12a78a4fdea5c80e1ebf5418b955ddd6d029f067730caf2",
+    "src/trafik/geometri.py": "27ec3fc7cfbbcabf77b06f7b5b3ed7b90d070b9ab4be8f0ab8dd3e40a82385bf",
+    "src/trafik/kamera.py": "e92bc061b3717e13c2b7d7b77adb992e1e5446b41382eaee15704e8e764997ab",
+    "src/trafik/olcum.py": "332666862880e789ecc30acce632405d207fbd9978d3b9691b3690d3988ff6f5",
+    "src/trafik/sam.py": "7fda0f497b447d8506279a3742acb3336bb7a145acd64856aff12d519a14eb56",
+    "src/trafik/sam_maske.py": "025c790b5ff5aabc188d021993931714e32b0096db9846a1589ae5ef01554dc7",
+    "src/trafik/simule.py": "0d121bb7d1deb5282c2ac5e8357830caec09c7df84d47719be5078f21fdaeeb8",
+    "src/trafik/sonuclar.py": "f28e432db5a9f2f8e3c7271513c6399652fbed913db531e2856d744dcddd3a45",
+    "src/trafik/sprint.py": "b8c4ed57734a8728c07921aa192b90aa0e234826a17aa25362c48c646e6ec17d",
+    "src/trafik/sumo_ag.py": "a6df502ef8c6b07d2c16c6c8b971f3dafa4982066257d5b4cfff0f283ec077fb",
+    "src/trafik/takip.py": "f559688651334a2c6e9de79d23acd510523d77a2381485e9d4d202cb7d5ee8d6",
+    "src/trafik/uyarlamali.py": "758829ca7e31d4d7e674470aa83637841a217cdf097b15cd8785d7c71d9a3291",
+    "src/trafik/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "source_revision": "92371271cc6d5818300aae94e04063b764bdbd96 plus the accounting changes in this commit"
+}

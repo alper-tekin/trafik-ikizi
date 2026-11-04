@@ -1,0 +1,274 @@
+{
+  "experiment": "camera-mask-20261104T201937369689Z",
+  "config": {
+    "schema_version": 1,
+    "status": "experiment_only_not_enabled_in_production",
+    "width": 640,
+    "height": 480,
+    "exclusions": [
+      {
+        "id": "west_sidewalk_static_fixture",
+        "polygon_px": [
+          [
+            186,
+            0
+          ],
+          [
+            202,
+            0
+          ],
+          [
+            202,
+            44
+          ],
+          [
+            186,
+            44
+          ]
+        ],
+        "reason": "Visually reviewed off-road static fixture near pixel (195.5,24.5), repeatedly detected as a vehicle and linked to a passing vehicle in original track 1500.",
+        "reviewed_video_seconds": [
+          100,
+          430,
+          700,
+          845,
+          849,
+          860
+        ],
+        "rule": "Exclude only detections whose centre lies in this polygon. Never discard vehicles based on wait duration."
+      }
+    ]
+  },
+  "config_sha256": "03f90b6bfbd03279a63c32033529f5468a619b6ec40f17a9001e483acc2bf7e4",
+  "source_hashes": {
+    "data\\tespit\\vehicle.jsonl": "6c4e9c26167dda167003addd539a7d25db991930cd07bf32333d2490d70ae4c9",
+    "data\\izler_kamera2.parquet": "c617681c3d1c42601ded42760833f7b59ac39a1b6392899515acac7afc00850a",
+    "data\\akis_izler.parquet": "b158b2452aede4530d2825e22ba224215fa7cd8783400fb5b2da613a615feda4",
+    "data\\gelisler.parquet": "42e8d46a53fb183b7bee4ae6ed6132098885cd382ead49dbd251d25a396f5aa2",
+    "web\\veri\\ozet.json": "c5b5215ffc58cf46bc2fc4050df210ed1ff3fb655dfa0fd158e81d0f6ceb6882"
+  },
+  "removed_detections": 4915,
+  "total_detections": 189521,
+  "results": {
+    "baseline": {
+      "tracks_n": 1755,
+      "flow_n": 1186,
+      "flow_by_arm": {
+        "B": 76,
+        "D": 66,
+        "G": 429,
+        "K": 615
+      },
+      "observed_waits_by_arm": {
+        "K": {
+          "n": 615,
+          "mean_s": 15.199,
+          "median_s": 0.0,
+          "p95_s": 60.06,
+          "max_s": 78.4
+        },
+        "G": {
+          "n": 429,
+          "mean_s": 13.273,
+          "median_s": 0.0,
+          "p95_s": 56.72,
+          "max_s": 107.2
+        },
+        "D": {
+          "n": 66,
+          "mean_s": 18.452,
+          "median_s": 5.6,
+          "p95_s": 73.85,
+          "max_s": 93.0
+        },
+        "B": {
+          "n": 76,
+          "mean_s": 17.347,
+          "median_s": 1.0,
+          "p95_s": 86.25,
+          "max_s": 422.4
+        }
+      },
+      "reference_check": {
+        "sample_step_s": 2,
+        "visible_reference_positions": 14541,
+        "matched_positions": 13121,
+        "coverage": 0.9023450931847878,
+        "median_error_m": 0.8406448505372933
+      },
+      "long_wait_tracks": [
+        {
+          "track_id": 1500,
+          "arm": "B",
+          "wait_s": 422.4
+        },
+        {
+          "track_id": 470,
+          "arm": "G",
+          "wait_s": 107.2
+        },
+        {
+          "track_id": 430,
+          "arm": "B",
+          "wait_s": 104.6
+        },
+        {
+          "track_id": 420,
+          "arm": "B",
+          "wait_s": 104.4
+        },
+        {
+          "track_id": 432,
+          "arm": "B",
+          "wait_s": 104.4
+        },
+        {
+          "track_id": 1911,
+          "arm": "D",
+          "wait_s": 93.0
+        },
+        {
+          "track_id": 419,
+          "arm": "B",
+          "wait_s": 80.2
+        },
+        {
+          "track_id": 916,
+          "arm": "K",
+          "wait_s": 78.4
+        },
+        {
+          "track_id": 948,
+          "arm": "K",
+          "wait_s": 78.2
+        },
+        {
+          "track_id": 953,
+          "arm": "K",
+          "wait_s": 78.0
+        },
+        {
+          "track_id": 3054,
+          "arm": "D",
+          "wait_s": 76.6
+        },
+        {
+          "track_id": 932,
+          "arm": "K",
+          "wait_s": 75.4
+        }
+      ]
+    },
+    "candidate": {
+      "tracks_n": 1756,
+      "flow_n": 1184,
+      "flow_by_arm": {
+        "B": 76,
+        "D": 66,
+        "G": 428,
+        "K": 614
+      },
+      "observed_waits_by_arm": {
+        "K": {
+          "n": 614,
+          "mean_s": 15.219,
+          "median_s": 0.0,
+          "p95_s": 60.07,
+          "max_s": 78.4
+        },
+        "G": {
+          "n": 428,
+          "mean_s": 13.307,
+          "median_s": 0.0,
+          "p95_s": 56.73,
+          "max_s": 107.2
+        },
+        "D": {
+          "n": 66,
+          "mean_s": 18.585,
+          "median_s": 6.5,
+          "p95_s": 73.85,
+          "max_s": 93.0
+        },
+        "B": {
+          "n": 76,
+          "mean_s": 11.674,
+          "median_s": 0.6,
+          "p95_s": 57.7,
+          "max_s": 104.6
+        }
+      },
+      "reference_check": {
+        "sample_step_s": 2,
+        "visible_reference_positions": 14541,
+        "matched_positions": 13108,
+        "coverage": 0.9014510693900006,
+        "median_error_m": 0.8406448505372933
+      },
+      "long_wait_tracks": [
+        {
+          "track_id": 482,
+          "arm": "G",
+          "wait_s": 107.2
+        },
+        {
+          "track_id": 442,
+          "arm": "B",
+          "wait_s": 104.6
+        },
+        {
+          "track_id": 433,
+          "arm": "B",
+          "wait_s": 104.4
+        },
+        {
+          "track_id": 444,
+          "arm": "B",
+          "wait_s": 104.4
+        },
+        {
+          "track_id": 1917,
+          "arm": "D",
+          "wait_s": 93.0
+        },
+        {
+          "track_id": 432,
+          "arm": "B",
+          "wait_s": 80.2
+        },
+        {
+          "track_id": 927,
+          "arm": "K",
+          "wait_s": 78.4
+        },
+        {
+          "track_id": 959,
+          "arm": "K",
+          "wait_s": 78.2
+        },
+        {
+          "track_id": 964,
+          "arm": "K",
+          "wait_s": 78.0
+        },
+        {
+          "track_id": 3058,
+          "arm": "D",
+          "wait_s": 76.6
+        },
+        {
+          "track_id": 943,
+          "arm": "K",
+          "wait_s": 75.4
+        },
+        {
+          "track_id": 2310,
+          "arm": "D",
+          "wait_s": 75.0
+        }
+      ]
+    }
+  },
+  "production_activated": false,
+  "limitations": "Retrospective camera-specific exclusion; reference sampling is every 2 s, not the full tracking benchmark. Candidate IDs differ; do not pair baseline/candidate by numeric ID."
+}

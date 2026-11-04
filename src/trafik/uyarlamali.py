@@ -25,6 +25,7 @@ import pandas as pd
 from trafik.degerlendir import ISINMA_S, KOL_ADI, SURE_S, HAREKET_ADI
 from trafik.simule import GIRIS_YON, HAREKET
 from trafik.sumo_ag import SARI, TUM_KIRMIZI, VARSAYILAN_GELIS, _ortam, _baglanti_hareketleri, kur, plan_videodan, sinyal_grubu
+from trafik.sonuclar import ozetle, talep_yolu, trip_oku
 
 FAZLAR = {
     "guney": ("Southbound through + left", {"ks": "G", "gd": "G"}),
@@ -67,6 +68,7 @@ def calistir(cfg: Path, kural: str, tohum: int = 1, kayit: bool = False) -> dict
     noktalar, durumlar = [], []
     try:
         traci.start([str(Path(sumo.SUMO_HOME) / "bin" / "sumo"), "-c", cfg.name, "--seed", str(tohum),
+                     "--tripinfo-output.write-unfinished", "true", "--tripinfo-output.write-undeparted", "true",
                      "--tripinfo-output", trip, "--no-warnings"])
         tls = traci.trafficlight.getIDList()[0]
         mx, my = traci.junction.getPosition("M")
@@ -80,7 +82,8 @@ def calistir(cfg: Path, kural: str, tohum: int = 1, kayit: bool = False) -> dict
         def hizmet(faz_ad: str, kol: str, harf: str) -> bool:
             return FAZLAR[faz_ad][1].get(sinyal_grubu(kol, harf), "r") in ("G", "g")
 
-        while traci.simulation.getMinExpectedNumber() > 0:
+        bitis_s = float(ET.parse(cfg.name).getroot().find("time/end").get("value"))
+        while traci.simulation.getMinExpectedNumber() > 0 and traci.simulation.getTime() < bitis_s:
             traci.simulationStep()
             t = traci.simulation.getTime()
             # bekleme sayaçları: giriş kolunda, durgunken
@@ -164,16 +167,6 @@ def calistir(cfg: Path, kural: str, tohum: int = 1, kayit: bool = False) -> dict
     return sonuc
 
 
-def _trip_oku(yol: Path) -> pd.DataFrame:
-    satir = []
-    for t in ET.parse(yol).getroot().iter("tripinfo"):
-        if float(t.get("depart")) < ISINMA_S:
-            continue
-        akis = t.get("id").split(".")[0]
-        satir.append((akis[0], akis[1], float(t.get("timeLoss")), float(t.get("waitingTime"))))
-    return pd.DataFrame(satir, columns=["kol", "hareket", "gecikme", "bekleme"])
-
-
 def hazirla(sayim: dict, surucu: dict, gelis: str = VARSAYILAN_GELIS, klasor: str = "sim/uyarlamali") -> Path:
     """Ağ ve talep; sinyal programı yalnızca başlangıç için (denetleyici her adımda üzerine yazar)."""
     y, C = plan_videodan()
@@ -183,18 +176,10 @@ def hazirla(sayim: dict, surucu: dict, gelis: str = VARSAYILAN_GELIS, klasor: st
 def degerlendir(kural: str, sayim: dict, surucu: dict, tohumlar=(1, 2, 3), gelis: str = VARSAYILAN_GELIS) -> dict:
     """degerlendir.degerlendir ile aynı biçimde ölçüler (plan yerine kural)."""
     cfg = hazirla(sayim, surucu, gelis)
-    d = pd.concat([_trip_oku(calistir(cfg, kural, t)["trip"]).assign(tohum=t) for t in tohumlar])
-    tohum_ort = d.groupby("tohum").gecikme.mean()
+    d = pd.concat([trip_oku(calistir(cfg, kural, t)["trip"], talep_yolu(cfg), ISINMA_S).assign(tohum=t)
+                   for t in tohumlar])
     return {
         "gecerli": True,
         "kural": kural,
-        "ort_gecikme_s": round(float(d.gecikme.mean()), 1),
-        "ort_gecikme_tohum_araligi_s": [round(float(tohum_ort.min()), 1), round(float(tohum_ort.max()), 1)],
-        "p95_gecikme_s": round(float(d.gecikme.quantile(0.95)), 1),
-        "arac_basi_durma_bekleme_s": round(float(d.bekleme.mean()), 1),
-        "tamamlanan_arac": int(len(d) / len(tohumlar)),
-        "kol_gecikme_s": {KOL_ADI[k]: round(float(v), 1) for k, v in d.groupby("kol").gecikme.mean().items()},
-        "kol_bekleme_s": {KOL_ADI[k]: round(float(v), 1) for k, v in d.groupby("kol").bekleme.mean().items()},
-        "hareket_gecikme_s": {f"{KOL_ADI[k]} {HAREKET_ADI[h]}": round(float(v), 1)
-                              for (k, h), v in d.groupby(["kol", "hareket"]).gecikme.mean().items()},
+        **ozetle(d, tohumlar),
     }

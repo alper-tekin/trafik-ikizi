@@ -7,7 +7,7 @@ Status: **started**. This document tracks delivered work separately from planned
 | Work | Status | Exit condition |
 |---|---|---|
 | Freeze current inputs and reproduce the baseline | Implemented; see `reports/sprint-start.json` | Versioned protocol, input hashes, package versions, fresh simulation and recorded-result comparison |
-| Diagnose side-street measurement/model errors | In progress | Review extreme tracks, insertion delays, signal timing and matched vehicle populations before changing calibration |
+| Diagnose side-street measurement/model errors | In progress; static fixture confirmed and insertion accounting implemented | Review extreme tracks, insertion delays, signal timing and matched vehicle populations before changing calibration |
 | Balance the adaptive controller | Pending | Compare mean, p95, per-approach wait, completion and pedestrian service on paired demand |
 | Let Muse Spark test adaptive parameters and additional baselines | Pending | Only recommend tested candidates; use the same demand and evaluation budget |
 | Explain signal decisions in the existing UI | Pending | Show why a phase was selected, including tradeoffs |
@@ -88,3 +88,8 @@ Simulation scratch files live under `sim/`, which is ignored.
    or only driver behaviour before treating its runs as different mornings.
 
 Controller/agent/UI changes have not yet been made as part of this sprint.
+
+
+## Follow-up delivery
+
+See [the follow-up report](../reports/sprint-followup.md). Shared fixed/adaptive accounting and the insertion-aware UI table are implemented. A narrow off-road exclusion was tested on cached detections and remains experimental. The adaptive policy itself has not yet been retuned.

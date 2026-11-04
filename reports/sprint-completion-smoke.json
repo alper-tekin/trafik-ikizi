@@ -1,0 +1,24 @@
+{
+  "static": {
+    "1": {
+      "planlanan": 2,
+      "tamamlanan": 0,
+      "agda_tamamlanmayan": 1,
+      "girememis": 1,
+      "kaydi_eksik": 0,
+      "kohortu_belirsiz": 0
+    }
+  },
+  "adaptive": {
+    "1": {
+      "planlanan": 2,
+      "tamamlanan": 0,
+      "agda_tamamlanmayan": 1,
+      "girememis": 1,
+      "kaydi_eksik": 0,
+      "kohortu_belirsiz": 0
+    }
+  },
+  "completed_metrics_are_null": true,
+  "incomplete_comparison_rejected": true
+}

@@ -162,6 +162,14 @@
     <div class="note">Time stopped (below 0.1 m/s) anywhere on the approach, not only inside the camera view.</div>
     <div id="aracNote" class="note" style="margin-top:8px"></div>
   </div>
+  <div class="card" style="margin-top:14px" id="entryAudit" hidden>
+    <h4>Delay including time before entry</h4>
+    <p class="note" id="entryScope"></p>
+    <div style="overflow-x:auto"><table id="entryTable"></table></div>
+    <p class="note">A lower delay inside the intersection can hide more time waiting to enter the simulation.
+      Combined loss includes both. It is different from time stopped, and describes completed journeys only.</p>
+    <p class="note" id="entryState" role="status"></p>
+  </div>
   <div class="card" style="margin-top:14px">
     <div class="row" style="margin-bottom:8px">
       <button id="simPlay">Play</button>
@@ -211,7 +219,38 @@ async function load() {
   [OZET, BEV, SIM_A, SIM_B, AG] = await Promise.all(['ozet', 'kusbakisi', RASTGELE ? 'sim_mevcut_rastgele' : 'sim_mevcut',
     (SAG === 'onerilen' ? 'sim_onerilen' : `sim_${SAG}`) + (RASTGELE ? '_rastgele' : ''), 'sim_ag'].map(veri));
   kpis(); counts(); signal(); queues(); waits(); bevStart(); simSetup();
+  entryAccounting();
   const d = await fetch('/api/durum').then(r => r.json()); $('#runLive').hidden = !d.canli_ajan;
+}
+
+async function entryAccounting() {
+  if (RASTGELE) return;
+  const card = $('#entryAudit');
+  card.hidden = false;
+  try {
+    const response = await fetch('/api/karsilastirma', { cache: 'no-cache' });
+    if (!response.ok) {
+      $('#entryState').textContent = 'This comparison needs to be generated again before it can be shown.';
+      return;
+    }
+    const audit = await response.json();
+    $('#entryScope').textContent = `Same arrivals from the video · ${audit.seeds.length} driver seeds (${audit.seeds.join(', ')}) · separate audit from the 10-seed table above.`;
+    const names = { current: 'Current plan', agent_recorded: "Agent’s fixed plan", longest_wait: 'Longest wait first', weighted: 'Weighted wait' };
+    const seconds = value => Number.isFinite(value) ? value.toFixed(1) + ' s' : '—';
+    $('#entryTable').innerHTML = '<tr><th>Plan</th><th>Inside network</th><th>Before entry</th><th>Combined loss</th><th>Demand completed</th></tr>' +
+      Object.entries(names).map(([key, name]) => {
+        const result = audit.results[key];
+        const counts = Object.values(result.tohum_talep_durumu);
+        const complete = result.tam_karsilastirma && counts.every(c => c.planlanan === c.tamamlanan);
+        const status = complete ? counts.map(c => c.tamamlanan).every(n => n === counts[0].tamamlanan)
+          ? `${counts[0].tamamlanan} in every run` : 'All scheduled vehicles' : 'Incomplete — do not rank';
+        return `<tr><td>${name}</td><td>${seconds(result.ort_gecikme_s)}</td><td>${seconds(result.ort_giris_gecikmesi_s)}</td>` +
+          `<td><b>${seconds(result.ort_toplam_kayip_s)}</b></td><td>${status}</td></tr>`;
+      }).join('');
+    $('#entryState').textContent = 'Recorded comparison of existing policies; no new controller tuning. All results are simulated.';
+  } catch {
+    $('#entryState').textContent = 'The comparison is currently unavailable.';
+  }
 }
 
 function kpis() {
@@ -291,7 +330,7 @@ function waits() {
         return r ? `median ${r.medyan_s} s · ${r.n} cars` : ''; } } } } }
   });
   const fark = a => { const v = ['video', 'ngsim', 'ikiz'].map(s => w[s][a].ort_s); return (Math.max(...v) - Math.min(...v)).toFixed(1); };
-  $('#waitNote').innerHTML = `<p><b>From north</b> and <b>from east</b>: the three sources agree within ${fark('K')} s and ${fark('D')} s.</p>
+  $('#waitNote').innerHTML = `<p>Spread between sources: <b>from north</b> ${fark('K')} s; <b>from east</b> ${fark('D')} s. Larger gaps indicate measurement or model uncertainty.</p>
     <p><b>From south</b>: the video reads lower (${w.video.G.ort_s} s vs ${w.ngsim.G.ort_s} s) because this approach runs into the
       bottom edge of the frame, so the back of the queue is often out of view.</p>
     <p><b>From west</b>: ground truth reads low (${w.ngsim.B.ort_s} s) because NGSIM only starts tracking side-street cars close to
@@ -351,6 +390,9 @@ function recHtml(c, d) {
       ${chk(d.onerilen_plan_test_edildi, 'Recommended plan was actually simulated by the agent')}
       ${chk(d.onerilen_gecikme_bildirilen === d.onerilen_gecikme_simulasyon && d.taban_gecikme_bildirilen === d.taban_gecikme_simulasyon, `Reported delays match re-simulation (${d.taban_gecikme_simulasyon} → ${d.onerilen_gecikme_simulasyon} s)`)}
       ${chk(d.plan_kisitlara_uygun, 'Pedestrian minimums and cycle bounds respected')}
+      ${d.tum_talep_tamamlandi !== undefined ? chk(d.tum_talep_tamamlandi, 'All scheduled vehicles completed; no demand hidden from the averages') : ''}
+      ${Number.isFinite(d.taban_toplam_kayip_s) && Number.isFinite(d.onerilen_toplam_kayip_s)
+        ? chk(d.onerilen_toplam_kayip_s < d.taban_toplam_kayip_s, `Combined loss including time before entry: ${d.taban_toplam_kayip_s} → ${d.onerilen_toplam_kayip_s} s`) : ''}
       ${d.kol_gecikme_farki_s ? (() => { const f = d.kol_gecikme_farki_s, worse = Object.entries(f).filter(([, x]) => x > 0.5);
           return chk(!worse.length, worse.length ? 'Approaches that get worse: ' + worse.map(([k, x]) => `${k} +${x} s`).join(', ')
             : 'No approach gets worse by more than 0.5 s (' + Object.entries(f).map(([k, x]) => `${k} ${x > 0 ? '+' : ''}${x}`).join(', ') + ')'); })() : ''}

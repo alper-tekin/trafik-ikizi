@@ -8,6 +8,7 @@ Muse Spark koşusu açılır; aynı anda yalnızca bir koşu çalışır.
 """
 
 import asyncio
+import hashlib
 import json
 import os
 import queue
@@ -24,7 +25,7 @@ from fastapi.staticfiles import StaticFiles
 KOK = Path(__file__).parent
 app = FastAPI(title="trafik-ikizi")
 app.mount("/static", StaticFiles(directory=KOK / "static"), name="static")
-app.mount("/veri", StaticFiles(directory=KOK / "veri"), name="veri")
+app.mount("/veri", StaticFiles(directory=KOK / "veri", check_dir=False), name="veri")
 
 _kilit = threading.Lock()
 
@@ -47,6 +48,24 @@ def ana_sayfa():
 @app.get("/api/durum")
 def durum():
     return {"canli_ajan": os.environ.get("CANLI_AJAN") == "1", "ajan_mesgul": _kilit.locked()}
+
+
+@app.get("/api/karsilastirma")
+def karsilastirma():
+    """Recorded audit; refuse to serve it as current after its inputs change."""
+    root = KOK.parent.resolve()
+    report = root / "reports/sprint-accounting.json"
+    if not report.is_file():
+        raise HTTPException(404, "The insertion-aware comparison has not been generated")
+    data = json.loads(report.read_text(encoding="utf-8"))
+    hashes = data.get("input_hashes", {})
+    if not hashes:
+        raise HTTPException(409, "Comparison provenance is missing; regenerate the report")
+    for name, expected in hashes.items():
+        path = (root / name).resolve()
+        if not path.is_relative_to(root) or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise HTTPException(409, "Comparison inputs changed; regenerate the report")
+    return data
 
 
 def _sse(olay: dict) -> str:

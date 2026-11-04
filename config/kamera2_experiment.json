@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "experiment_only_not_enabled_in_production",
+  "width": 640,
+  "height": 480,
+  "exclusions": [
+    {
+      "id": "west_sidewalk_static_fixture",
+      "polygon_px": [[186, 0], [202, 0], [202, 44], [186, 44]],
+      "reason": "Visually reviewed off-road static fixture near pixel (195.5,24.5), repeatedly detected as a vehicle and linked to a passing vehicle in original track 1500.",
+      "reviewed_video_seconds": [100, 430, 700, 845, 849, 860],
+      "rule": "Exclude only detections whose centre lies in this polygon. Never discard vehicles based on wait duration."
+    }
+  ]
+}

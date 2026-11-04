@@ -66,6 +66,8 @@ on seed 1 it adds 4.51 s to 20.56 s of in-network loss. No controller improvemen
 is claimed by this baseline. Existing-video windows are retrospective; an unseen
 test period/video is still needed.
 
+The [sprint follow-up](reports/sprint-followup.md) adds shared insertion/completion accounting, a new comparison table and a reviewed off-road detection experiment. The detector experiment is not activated in the production pipeline.
+
 ## The agent
 
 `src/trafik/ajan.py`, using `muse-spark-1.3` through the Responses API with four developer-defined tools:
@@ -129,7 +131,7 @@ Same 1,186 vehicles from the video, 10 seeds of driver behaviour, and 10 random 
 | Adaptive, longest wait first | **18.0 s** | **9.6 s** | **21.3 s** |
 | Adaptive, weighted | 20.1 s | 10.2 s | 23.3 s |
 
-With no tuning at all, longest-wait-first beats the agent's tuned fixed plan, on the video's traffic and even more on random mornings, and it is the best of the four for Lankershim from the north (wait 14.0 → 9.6 s). It pays on the cross street (from west 6.1 → 16.3 s), mostly because of the pedestrian rule: every two minutes the cross street holds 30 s of green whether or not cars are there. The first version switched as soon as another phase scored higher and lost a quarter of the time to yellow and all-red; keeping the green while its queue is still discharging fixed that. The 40 m demand distance was checked at 20, 30, 40 and 60 m (longest wait first: 17.8 to 18.2 s, weighted: 20.2 to 20.6 s). In the demo the right-hand twin can switch between the agent's plan and both adaptive rules.
+On the in-network delay metric in this historical 10-seed table, longest-wait-first beats the agent's tuned fixed plan and is the best of the four for Lankershim from the north (wait 14.0 → 9.6 s). **This metric excludes insertion delay.** A new three-seed audit finds that counting time before insertion reverses longest-wait-first's advantage over the current plan: combined loss is 26.5 s versus 24.9 s, while the agent's fixed plan is 20.6 s. These are separate three-seed results, not a revision of the 10-seed numbers above. See [the insertion-aware comparison](reports/sprint-followup.md). It pays on the cross street (from west 6.1 → 16.3 s), mostly because of the pedestrian rule: every two minutes the cross street holds 30 s of green whether or not cars are there. The first version switched as soon as another phase scored higher and lost a quarter of the time to yellow and all-red; keeping the green while its queue is still discharging fixed that. The 40 m demand distance was checked at 20, 30, 40 and 60 m (longest wait first: 17.8 to 18.2 s, weighted: 20.2 to 20.6 s). In the demo the right-hand twin can switch between the agent's plan and both adaptive rules.
 
 ## What went wrong along the way (and what fixed it)
 

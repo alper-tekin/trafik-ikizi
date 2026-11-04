@@ -9,13 +9,13 @@ davranışındaki rastgeleliği değiştirir. gelis="rastgele" ile sayımlardan 
 import hashlib
 import json
 import subprocess
-import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
 from trafik.sumo_ag import SARI, TUM_KIRMIZI, VARSAYILAN_GELIS, _ortam, _sumo_bin, faz_plani_surelerden, kur
+from trafik.sonuclar import ozetle, talep_yolu, trip_oku
 
 SURE_S = 1122.0
 ISINMA_S = 120.0
@@ -58,16 +58,11 @@ def _tek_kosu(cfg: Path, tohum: int) -> pd.DataFrame:
     cikti = f"trip_{tohum}.xml"
     subprocess.run(
         [_sumo_bin("sumo"), "-c", cfg.name, "--seed", str(tohum), "--tripinfo-output", cikti,
+         "--tripinfo-output.write-unfinished", "true", "--tripinfo-output.write-undeparted", "true",
          "--no-warnings", "--no-step-log"],
         check=True, cwd=cfg.parent, env=_ortam(), capture_output=True,
     )
-    satir = []
-    for t in ET.parse(cfg.parent / cikti).getroot().iter("tripinfo"):
-        if float(t.get("depart")) < ISINMA_S:
-            continue
-        akis = t.get("id").split(".")[0]
-        satir.append((akis[0], akis[1], float(t.get("timeLoss")), float(t.get("waitingTime"))))
-    return pd.DataFrame(satir, columns=["kol", "hareket", "gecikme", "bekleme"])
+    return trip_oku(cfg.parent / cikti, talep_yolu(cfg), ISINMA_S)
 
 
 def degerlendir(plan: dict, sayim: dict, surucu: dict, tohumlar=(1, 2, 3), gelis: str = VARSAYILAN_GELIS) -> dict:
@@ -79,21 +74,10 @@ def degerlendir(plan: dict, sayim: dict, surucu: dict, tohumlar=(1, 2, 3), gelis
     cfg = kur(Path("sim/aday") / anahtar, sayim, SURE_S, {}, 0, surucu=surucu, fazlar=fazlar, gelis=gelis)
     d = pd.concat([_tek_kosu(cfg, t).assign(tohum=t) for t in tohumlar])
 
-    kol = d.groupby("kol").gecikme.mean().round(1)
-    hareket = d.groupby(["kol", "hareket"]).gecikme.mean().round(1)
-    tohum_ort = d.groupby("tohum").gecikme.mean()
     return {
         "gecerli": True,
         "plan": {**plan, "dongu_s": dongu(plan)},
-        "ort_gecikme_s": round(float(d.gecikme.mean()), 1),
-        "ort_gecikme_tohum_araligi_s": [round(float(tohum_ort.min()), 1), round(float(tohum_ort.max()), 1)],
-        "p95_gecikme_s": round(float(d.gecikme.quantile(0.95)), 1),
-        "arac_basi_durma_bekleme_s": round(float(d.bekleme.mean()), 1),
-        "tamamlanan_arac": int(len(d) / len(tohumlar)),
-        "kol_gecikme_s": {KOL_ADI[k]: v for k, v in kol.items()},
-        # SUMO waitingTime: hızın 0,1 m/s altında geçen süre (araç başı, kol ortalaması)
-        "kol_bekleme_s": {KOL_ADI[k]: round(float(v), 1) for k, v in d.groupby("kol").bekleme.mean().items()},
-        "hareket_gecikme_s": {f"{KOL_ADI[k]} {HAREKET_ADI[h]}": v for (k, h), v in hareket.items()},
+        **ozetle(d, tohumlar),
     }
 
 
