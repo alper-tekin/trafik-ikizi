@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "video_duration_s": 1122.0,
+  "windows": {
+    "calibration": [0.0, 404.0],
+    "development": [404.0, 707.0],
+    "retrospective_check": [707.0, 1122.0]
+  },
+  "independent_test": {
+    "status": "not_available",
+    "reason": "The entire existing video and NGSIM reference have already informed development. These windows are retrospective diagnostics, not an unseen test."
+  },
+  "driver_seeds": [1, 2, 3],
+  "comparison_seeds": [11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+  "candidate_gates": {
+    "min_mean_delay_improvement_s": 1.0,
+    "max_approach_mean_wait_regression_s": 1.0,
+    "max_p95_wait_regression_s": 2.0,
+    "max_completion_count_drop": 0
+  },
+  "notes": [
+    "Gates are engineering targets, not demonstrated improvements or field-safety guarantees.",
+    "Candidate gates must be checked on paired seeds and identical scheduled demand, including unfinished and uninserted vehicles.",
+    "Changing a threshold requires a recorded reason before examining the final comparison.",
+    "Existing calibration and signal estimates use the whole video; slicing metrics does not refit those components or remove leakage."
+  ]
+}

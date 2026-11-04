@@ -1,0 +1,759 @@
+{
+  "schema_version": 1,
+  "run_id": "20261104T200739796377Z",
+  "git_commit": "c50bf4edc5ae1b8ba49e247370116a855a768ff8",
+  "manifest_sha256": "6f316e92177cd8539e1edbcaab67ff7f122b2c4dbd0922c97685c4d0fddc120d",
+  "protocol": {
+    "schema_version": 1,
+    "video_duration_s": 1122.0,
+    "windows": {
+      "calibration": [
+        0.0,
+        404.0
+      ],
+      "development": [
+        404.0,
+        707.0
+      ],
+      "retrospective_check": [
+        707.0,
+        1122.0
+      ]
+    },
+    "independent_test": {
+      "status": "not_available",
+      "reason": "The entire existing video and NGSIM reference have already informed development. These windows are retrospective diagnostics, not an unseen test."
+    },
+    "driver_seeds": [
+      1,
+      2,
+      3
+    ],
+    "comparison_seeds": [
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "candidate_gates": {
+      "min_mean_delay_improvement_s": 1.0,
+      "max_approach_mean_wait_regression_s": 1.0,
+      "max_p95_wait_regression_s": 2.0,
+      "max_completion_count_drop": 0
+    },
+    "notes": [
+      "Gates are engineering targets, not demonstrated improvements or field-safety guarantees.",
+      "Candidate gates must be checked on paired seeds and identical scheduled demand, including unfinished and uninserted vehicles.",
+      "Changing a threshold requires a recorded reason before examining the final comparison.",
+      "Existing calibration and signal estimates use the whole video; slicing metrics does not refit those components or remove leakage."
+    ]
+  },
+  "plan": {
+    "sol_onde": 15,
+    "guney_onde": 13,
+    "ortak": 32,
+    "ara_sokak": 33.0
+  },
+  "drivers": {
+    "tau": 1.2,
+    "accel": 1.5
+  },
+  "fresh_current_plan": {
+    "gecerli": true,
+    "plan": {
+      "sol_onde": 15,
+      "guney_onde": 13,
+      "ortak": 32,
+      "ara_sokak": 33.0,
+      "dongu_s": 101.0
+    },
+    "ort_gecikme_s": 20.5,
+    "ort_gecikme_tohum_araligi_s": [
+      20.3,
+      20.6
+    ],
+    "p95_gecikme_s": 68.0,
+    "arac_basi_durma_bekleme_s": 12.1,
+    "tamamlanan_arac": 1186,
+    "kol_gecikme_s": {
+      "from west": 13.1,
+      "from east": 16.1,
+      "from south (northbound)": 18.6,
+      "from north (southbound)": 23.1
+    },
+    "kol_bekleme_s": {
+      "from west": 6.1,
+      "from east": 8.2,
+      "from south (northbound)": 11.1,
+      "from north (southbound)": 14.0
+    },
+    "hareket_gecikme_s": {
+      "from west left": 16.5,
+      "from west right": 16.2,
+      "from west through": 9.3,
+      "from east left": 34.4,
+      "from east right": 11.9,
+      "from east through": 21.4,
+      "from south (northbound) left": 56.2,
+      "from south (northbound) right": 9.0,
+      "from south (northbound) through": 20.2,
+      "from north (southbound) left": 37.7,
+      "from north (southbound) right": 9.5,
+      "from north (southbound) through": 18.6
+    }
+  },
+  "recorded_current_delay_s": 20.5,
+  "delay_matches_recorded": true,
+  "diagnostics": {
+    "arrival_diagnostics": {
+      "K": {
+        "scheduled_n": 615,
+        "completed_n": 615,
+        "not_completed_n": 0,
+        "first_seen_stopped_fraction": 0.052,
+        "median_first_seen_distance_to_stop_m": 56.24,
+        "mean_insertion_delay_s": 1.699,
+        "p95_insertion_delay_s": 7.4,
+        "max_insertion_delay_s": 60.5
+      },
+      "G": {
+        "scheduled_n": 429,
+        "completed_n": 429,
+        "not_completed_n": 0,
+        "first_seen_stopped_fraction": 0.131,
+        "median_first_seen_distance_to_stop_m": 18.78,
+        "mean_insertion_delay_s": 9.428,
+        "p95_insertion_delay_s": 57.78,
+        "max_insertion_delay_s": 85.2
+      },
+      "D": {
+        "scheduled_n": 66,
+        "completed_n": 66,
+        "not_completed_n": 0,
+        "first_seen_stopped_fraction": 0.121,
+        "median_first_seen_distance_to_stop_m": 23.64,
+        "mean_insertion_delay_s": 0.217,
+        "p95_insertion_delay_s": 0.4,
+        "max_insertion_delay_s": 1.2
+      },
+      "B": {
+        "scheduled_n": 76,
+        "completed_n": 76,
+        "not_completed_n": 0,
+        "first_seen_stopped_fraction": 0.171,
+        "median_first_seen_distance_to_stop_m": 9.63,
+        "mean_insertion_delay_s": 3.184,
+        "p95_insertion_delay_s": 6.65,
+        "max_insertion_delay_s": 70.0
+      }
+    },
+    "windows": {
+      "full_video": {
+        "interval_s": [
+          0.0,
+          1122.0
+        ],
+        "status": "retrospective_only",
+        "measure": "Observed stopped exposure within this window, speed <1 m/s and 12-75 m from centre; not full-journey wait.",
+        "video": {
+          "K": {
+            "n": 615,
+            "mean_s": 15.199,
+            "median_s": 0.0,
+            "p95_s": 60.06,
+            "max_s": 78.4
+          },
+          "G": {
+            "n": 429,
+            "mean_s": 13.273,
+            "median_s": 0.0,
+            "p95_s": 56.72,
+            "max_s": 107.2
+          },
+          "D": {
+            "n": 66,
+            "mean_s": 18.452,
+            "median_s": 5.6,
+            "p95_s": 73.85,
+            "max_s": 93.0
+          },
+          "B": {
+            "n": 76,
+            "mean_s": 17.347,
+            "median_s": 1.0,
+            "p95_s": 86.25,
+            "max_s": 422.4
+          }
+        },
+        "twin": {
+          "K": {
+            "n": 615,
+            "mean_s": 15.141,
+            "median_s": 0.0,
+            "p95_s": 53.5,
+            "max_s": 66.0
+          },
+          "G": {
+            "n": 429,
+            "mean_s": 11.4,
+            "median_s": 0.0,
+            "p95_s": 64.8,
+            "max_s": 68.5
+          },
+          "D": {
+            "n": 66,
+            "mean_s": 9.371,
+            "median_s": 1.5,
+            "p95_s": 44.125,
+            "max_s": 66.0
+          },
+          "B": {
+            "n": 76,
+            "mean_s": 7.026,
+            "median_s": 0.0,
+            "p95_s": 62.375,
+            "max_s": 71.5
+          }
+        },
+        "paired_same_tracks": {
+          "K": {
+            "n": 615,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -0.058,
+            "median_absolute_error_s": 0.4
+          },
+          "G": {
+            "n": 429,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -1.873,
+            "median_absolute_error_s": 1.2
+          },
+          "D": {
+            "n": 66,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -9.08,
+            "median_absolute_error_s": 2.75
+          },
+          "B": {
+            "n": 76,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -10.321,
+            "median_absolute_error_s": 1.75
+          }
+        },
+        "queue_comparison_by_arm": {
+          "K": {
+            "paired_seconds": 1121,
+            "requested_seconds": 1122,
+            "rmse_veh": 4.269
+          },
+          "G": {
+            "paired_seconds": 1121,
+            "requested_seconds": 1122,
+            "rmse_veh": 2.853
+          },
+          "D": {
+            "paired_seconds": 1121,
+            "requested_seconds": 1122,
+            "rmse_veh": 1.034
+          },
+          "B": {
+            "paired_seconds": 1121,
+            "requested_seconds": 1122,
+            "rmse_veh": 1.786
+          }
+        }
+      },
+      "calibration": {
+        "interval_s": [
+          0.0,
+          404.0
+        ],
+        "status": "retrospective_only",
+        "measure": "Observed stopped exposure within this window, speed <1 m/s and 12-75 m from centre; not full-journey wait.",
+        "video": {
+          "K": {
+            "n": 238,
+            "mean_s": 17.93,
+            "median_s": 1.0,
+            "p95_s": 62.98,
+            "max_s": 78.4
+          },
+          "G": {
+            "n": 147,
+            "mean_s": 13.816,
+            "median_s": 0.0,
+            "p95_s": 57.64,
+            "max_s": 107.2
+          },
+          "D": {
+            "n": 27,
+            "mean_s": 14.511,
+            "median_s": 6.8,
+            "p95_s": 46.8,
+            "max_s": 50.6
+          },
+          "B": {
+            "n": 24,
+            "mean_s": 21.433,
+            "median_s": 0.4,
+            "p95_s": 104.4,
+            "max_s": 104.6
+          }
+        },
+        "twin": {
+          "K": {
+            "n": 233,
+            "mean_s": 17.309,
+            "median_s": 1.0,
+            "p95_s": 55.5,
+            "max_s": 66.0
+          },
+          "G": {
+            "n": 145,
+            "mean_s": 11.759,
+            "median_s": 0.0,
+            "p95_s": 63.0,
+            "max_s": 68.5
+          },
+          "D": {
+            "n": 27,
+            "mean_s": 9.5,
+            "median_s": 2.0,
+            "p95_s": 37.3,
+            "max_s": 45.5
+          },
+          "B": {
+            "n": 24,
+            "mean_s": 14.688,
+            "median_s": 0.25,
+            "p95_s": 68.2,
+            "max_s": 71.0
+          }
+        },
+        "paired_same_tracks": {
+          "K": {
+            "n": 233,
+            "video_only_n": 5,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -1.002,
+            "median_absolute_error_s": 4.9
+          },
+          "G": {
+            "n": 145,
+            "video_only_n": 2,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -2.248,
+            "median_absolute_error_s": 2.0
+          },
+          "D": {
+            "n": 27,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -5.011,
+            "median_absolute_error_s": 2.9
+          },
+          "B": {
+            "n": 24,
+            "video_only_n": 0,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -6.746,
+            "median_absolute_error_s": 15.45
+          }
+        },
+        "queue_comparison_by_arm": {
+          "K": {
+            "paired_seconds": 403,
+            "requested_seconds": 404,
+            "rmse_veh": 5.489
+          },
+          "G": {
+            "paired_seconds": 403,
+            "requested_seconds": 404,
+            "rmse_veh": 3.614
+          },
+          "D": {
+            "paired_seconds": 403,
+            "requested_seconds": 404,
+            "rmse_veh": 0.869
+          },
+          "B": {
+            "paired_seconds": 403,
+            "requested_seconds": 404,
+            "rmse_veh": 2.354
+          }
+        }
+      },
+      "development": {
+        "interval_s": [
+          404.0,
+          707.0
+        ],
+        "status": "retrospective_only",
+        "measure": "Observed stopped exposure within this window, speed <1 m/s and 12-75 m from centre; not full-journey wait.",
+        "video": {
+          "K": {
+            "n": 174,
+            "mean_s": 12.176,
+            "median_s": 0.0,
+            "p95_s": 55.27,
+            "max_s": 64.6
+          },
+          "G": {
+            "n": 127,
+            "mean_s": 12.474,
+            "median_s": 0.0,
+            "p95_s": 56.34,
+            "max_s": 64.4
+          },
+          "D": {
+            "n": 23,
+            "mean_s": 18.835,
+            "median_s": 8.2,
+            "p95_s": 58.08,
+            "max_s": 93.0
+          },
+          "B": {
+            "n": 20,
+            "mean_s": 22.07,
+            "median_s": 1.4,
+            "p95_s": 41.79,
+            "max_s": 281.0
+          }
+        },
+        "twin": {
+          "K": {
+            "n": 178,
+            "mean_s": 11.781,
+            "median_s": 0.0,
+            "p95_s": 52.575,
+            "max_s": 55.5
+          },
+          "G": {
+            "n": 116,
+            "mean_s": 10.823,
+            "median_s": 0.0,
+            "p95_s": 65.25,
+            "max_s": 68.0
+          },
+          "D": {
+            "n": 22,
+            "mean_s": 9.636,
+            "median_s": 1.5,
+            "p95_s": 47.1,
+            "max_s": 65.0
+          },
+          "B": {
+            "n": 21,
+            "mean_s": 5.19,
+            "median_s": 0.0,
+            "p95_s": 18.0,
+            "max_s": 21.0
+          }
+        },
+        "paired_same_tracks": {
+          "K": {
+            "n": 173,
+            "video_only_n": 1,
+            "twin_only_n": 5,
+            "mean_twin_minus_video_s": -0.194,
+            "median_absolute_error_s": 0.0
+          },
+          "G": {
+            "n": 115,
+            "video_only_n": 12,
+            "twin_only_n": 1,
+            "mean_twin_minus_video_s": -2.864,
+            "median_absolute_error_s": 1.0
+          },
+          "D": {
+            "n": 22,
+            "video_only_n": 1,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -9.273,
+            "median_absolute_error_s": 4.0
+          },
+          "B": {
+            "n": 20,
+            "video_only_n": 0,
+            "twin_only_n": 1,
+            "mean_twin_minus_video_s": -17.67,
+            "median_absolute_error_s": 0.6
+          }
+        },
+        "queue_comparison_by_arm": {
+          "K": {
+            "paired_seconds": 303,
+            "requested_seconds": 303,
+            "rmse_veh": 2.888
+          },
+          "G": {
+            "paired_seconds": 303,
+            "requested_seconds": 303,
+            "rmse_veh": 2.789
+          },
+          "D": {
+            "paired_seconds": 303,
+            "requested_seconds": 303,
+            "rmse_veh": 1.183
+          },
+          "B": {
+            "paired_seconds": 303,
+            "requested_seconds": 303,
+            "rmse_veh": 1.421
+          }
+        }
+      },
+      "retrospective_check": {
+        "interval_s": [
+          707.0,
+          1122.0
+        ],
+        "status": "retrospective_only",
+        "measure": "Observed stopped exposure within this window, speed <1 m/s and 12-75 m from centre; not full-journey wait.",
+        "video": {
+          "K": {
+            "n": 230,
+            "mean_s": 12.875,
+            "median_s": 0.0,
+            "p95_s": 51.33,
+            "max_s": 62.8
+          },
+          "G": {
+            "n": 166,
+            "mean_s": 12.524,
+            "median_s": 0.0,
+            "p95_s": 55.35,
+            "max_s": 64.8
+          },
+          "D": {
+            "n": 22,
+            "mean_s": 17.855,
+            "median_s": 2.7,
+            "p95_s": 74.77,
+            "max_s": 76.6
+          },
+          "B": {
+            "n": 33,
+            "mean_s": 10.988,
+            "median_s": 2.4,
+            "p95_s": 31.88,
+            "max_s": 141.4
+          }
+        },
+        "twin": {
+          "K": {
+            "n": 231,
+            "mean_s": 13.773,
+            "median_s": 0.0,
+            "p95_s": 52.0,
+            "max_s": 54.0
+          },
+          "G": {
+            "n": 175,
+            "mean_s": 11.029,
+            "median_s": 0.0,
+            "p95_s": 64.8,
+            "max_s": 68.5
+          },
+          "D": {
+            "n": 21,
+            "mean_s": 7.143,
+            "median_s": 1.5,
+            "p95_s": 31.5,
+            "max_s": 54.5
+          },
+          "B": {
+            "n": 32,
+            "mean_s": 2.266,
+            "median_s": 0.0,
+            "p95_s": 9.125,
+            "max_s": 36.5
+          }
+        },
+        "paired_same_tracks": {
+          "K": {
+            "n": 230,
+            "video_only_n": 0,
+            "twin_only_n": 1,
+            "mean_twin_minus_video_s": 0.958,
+            "median_absolute_error_s": 0.15
+          },
+          "G": {
+            "n": 165,
+            "video_only_n": 1,
+            "twin_only_n": 10,
+            "mean_twin_minus_video_s": -1.433,
+            "median_absolute_error_s": 1.0
+          },
+          "D": {
+            "n": 21,
+            "video_only_n": 1,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -10.81,
+            "median_absolute_error_s": 2.0
+          },
+          "B": {
+            "n": 32,
+            "video_only_n": 1,
+            "twin_only_n": 0,
+            "mean_twin_minus_video_s": -4.647,
+            "median_absolute_error_s": 1.3
+          }
+        },
+        "queue_comparison_by_arm": {
+          "K": {
+            "paired_seconds": 415,
+            "requested_seconds": 415,
+            "rmse_veh": 3.727
+          },
+          "G": {
+            "paired_seconds": 415,
+            "requested_seconds": 415,
+            "rmse_veh": 1.904
+          },
+          "D": {
+            "paired_seconds": 415,
+            "requested_seconds": 415,
+            "rmse_veh": 1.064
+          },
+          "B": {
+            "paired_seconds": 415,
+            "requested_seconds": 415,
+            "rmse_veh": 1.328
+          }
+        }
+      }
+    },
+    "largest_wait_mismatches": [
+      {
+        "track_id": 1500,
+        "arm": "B",
+        "video_wait_s": 422.4,
+        "twin_wait_s": 1.0,
+        "twin_minus_video_s": -421.4,
+        "video_first_s": 424.0,
+        "video_last_s": 855.6
+      },
+      {
+        "track_id": 430,
+        "arm": "B",
+        "video_wait_s": 104.6,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -104.6,
+        "video_first_s": 132.8,
+        "video_last_s": 254.6
+      },
+      {
+        "track_id": 420,
+        "arm": "B",
+        "video_wait_s": 104.4,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -104.4,
+        "video_first_s": 127.8,
+        "video_last_s": 247.2
+      },
+      {
+        "track_id": 432,
+        "arm": "B",
+        "video_wait_s": 104.4,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -104.4,
+        "video_first_s": 135.4,
+        "video_last_s": 248.6
+      },
+      {
+        "track_id": 1911,
+        "arm": "D",
+        "video_wait_s": 93.0,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -93.0,
+        "video_first_s": 523.6,
+        "video_last_s": 631.6
+      },
+      {
+        "track_id": 470,
+        "arm": "G",
+        "video_wait_s": 107.2,
+        "twin_wait_s": 22.5,
+        "twin_minus_video_s": -84.7,
+        "video_first_s": 156.4,
+        "video_last_s": 275.4
+      },
+      {
+        "track_id": 419,
+        "arm": "B",
+        "video_wait_s": 80.2,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -80.2,
+        "video_first_s": 127.6,
+        "video_last_s": 251.4
+      },
+      {
+        "track_id": 916,
+        "arm": "K",
+        "video_wait_s": 78.4,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -78.4,
+        "video_first_s": 277.0,
+        "video_last_s": 373.8
+      },
+      {
+        "track_id": 3054,
+        "arm": "D",
+        "video_wait_s": 76.6,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -76.6,
+        "video_first_s": 837.4,
+        "video_last_s": 929.6
+      },
+      {
+        "track_id": 2304,
+        "arm": "D",
+        "video_wait_s": 75.0,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -75.0,
+        "video_first_s": 643.2,
+        "video_last_s": 730.2
+      },
+      {
+        "track_id": 2650,
+        "arm": "D",
+        "video_wait_s": 75.0,
+        "twin_wait_s": 0.0,
+        "twin_minus_video_s": -75.0,
+        "video_first_s": 730.4,
+        "video_last_s": 830.2
+      },
+      {
+        "track_id": 1197,
+        "arm": "B",
+        "video_wait_s": 0.4,
+        "twin_wait_s": 71.5,
+        "twin_minus_video_s": 71.1,
+        "video_first_s": 350.0,
+        "video_last_s": 367.6
+      }
+    ]
+  },
+  "seed1_completed_trip_accounting": {
+    "scope": "Seed 1 completed trips only. Insertion delay is time outside the simulation, not observed stopped time. Not a field-travel-time estimate.",
+    "scheduled_n": 1186,
+    "completed_n": 1186,
+    "mean_in_network_time_loss_s": 20.56399662731872,
+    "mean_insertion_delay_s": 4.507588532883642,
+    "mean_time_loss_plus_insertion_s": 25.07158516020236,
+    "p95_stopped_wait_s": 55.75,
+    "max_stopped_wait_s": 92.5
+  }
+}

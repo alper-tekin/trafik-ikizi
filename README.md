@@ -36,7 +36,7 @@ The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1
 
 ## Every stage is checked against ground truth
 
-The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, camera 2, 08:28 to 08:47). NGSIM also publishes hand-verified trajectories for every vehicle. **NGSIM trajectories are an input to camera calibration:** their ground positions are matched to SAM detections to estimate the homography and video/trajectory time offset (`scripts/kalibre.py`). After that calibration, tracks, turning counts, queues, arrivals and signal timings are derived from the video, and SUMO driver parameters are fitted to video queues. NGSIM trajectories are also used as a reference for the reported checks. Because that reference contributes to calibration, these checks are not a fully independent, held-out evaluation.
+The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, camera 2, 08:28 to 08:47). NGSIM also publishes hand-verified trajectories for every vehicle. **NGSIM trajectories are an input to camera calibration:** their ground positions are matched to SAM detections to estimate the homography and video/trajectory time offset (`scripts/kalibre.py`). After that calibration, tracks, turning counts, queues, arrivals and signal timings are derived from the video, and SUMO driver parameters are fitted to video queues. NGSIM trajectories are also used as a reference for the reported checks. Because that reference contributes to calibration, these checks are not a fully independent, held-out evaluation. NGSIM also informed the local coordinate origin/axis, the large-vehicle classification threshold and the nominal simulated large-vehicle length; these are additional dependencies beyond camera calibration.
 
 | Stage | Result | Ground truth |
 |---|---|---|
@@ -55,6 +55,16 @@ The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, 
 | Vehicle by vehicle | the same 1,186 vehicles wait 12.9 s in the twin (current plan) and 14.8 s in the video; median difference per vehicle 1.2 s | — |
 
 The signal plan was recovered without the signal logs. The cycle length comes from the autocorrelation of vehicles crossing the intersection, and each green window comes from where crossings cluster within the cycle. This is how the twin learned that the intersection runs a **lead-lag left**: southbound left turns go first, then southbound through, then both directions.
+
+## Development sprint
+
+The new sprint starts with a reproducible baseline and per-approach diagnosis.
+See [the sprint plan and measurement protocol](docs/sprint.md) and
+[the first measured report](reports/sprint-start.md). The current 20.5 s mean
+in-network delay was reproduced. Insertion delay is now reported separately:
+on seed 1 it adds 4.51 s to 20.56 s of in-network loss. No controller improvement
+is claimed by this baseline. Existing-video windows are retrospective; an unseen
+test period/video is still needed.
 
 ## The agent
 
