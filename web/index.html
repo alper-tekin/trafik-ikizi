@@ -79,7 +79,7 @@
   <h1>Traffic Twin</h1>
   <p>One fixed camera over a real Los Angeles intersection becomes a calibrated traffic simulation.
      A Muse Spark agent then tests signal timings in that simulation and recommends one, with every
-     claim tied to a measurement. Each step is scored against independent ground truth.</p>
+     claim tied to a measurement. Measurements are compared with NGSIM reference trajectories, also used for camera calibration.</p>
   <div class="kpis" id="kpis"></div>
 </header>
 
@@ -88,7 +88,7 @@
   <h3>SAM 3.1 finds every vehicle; tracking turns detections into paths</h3>
   <p class="lead">Left: the real video (FHWA NGSIM, Lankershim Blvd, 16 June 2005) with SAM 3.1 boxes and
      2-second track trails. Right: the same tracked cars on a top-down map turned to match the video, synced to it.
-     The camera calibration was solved from the data, with no hand-placed points. The signal lights show the plan
+     The camera calibration matches SAM detections to NGSIM ground positions, with no hand-placed points. The signal lights show the plan
      recovered from vehicle movements, so you can check that cars stop on red.</p>
   <div class="grid2">
     <div class="card"><video id="video" src="/static/video_katman.mp4" controls muted playsinline preload="metadata"></video></div>
@@ -102,9 +102,10 @@
 
 <section>
   <h2>2 · Measure</h2>
-  <h3>Is the twin right? Checked against ground truth it never saw</h3>
-  <p class="lead">NGSIM's own vehicle trajectories are used only for checking, never as input. The
-     simulation is calibrated to the video alone.</p>
+  <h3>How closely does the twin match the measurements?</h3>
+  <p class="lead">NGSIM trajectories supply ground positions for camera calibration and a reference for these checks.
+     Tracks, traffic demand and signal timings then come from the video; SUMO driver parameters are fitted to video queues.
+     Since NGSIM also contributes to calibration, this is not a fully independent evaluation.</p>
   <div class="grid2">
     <div class="card"><h4>Turning counts, 18.7 minutes</h4><table id="counts"></table>
       <div class="note">Classified from tracks by entry and exit arm.</div></div>

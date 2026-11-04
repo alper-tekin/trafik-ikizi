@@ -14,7 +14,7 @@ I lose a lot of time stuck at traffic lights. Retiming a signal is cheap compare
 fixed-camera video
    │  SAM 3.1 (Meta Model API): "vehicle" on every 2nd frame, 5,610 frames
    ▼
-detections ──► camera calibration solved from the data (no hand-placed points)
+detections + NGSIM positions ──► camera calibration (no hand-placed points)
    │
    ▼
 tracks in ground coordinates ──► turning counts, queues, signal plan, road geometry
@@ -36,11 +36,11 @@ The web demo (`web/`) shows the four stages side by side: the video with SAM 3.1
 
 ## Every stage is checked against ground truth
 
-The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, camera 2, 08:28 to 08:47). NGSIM also publishes hand-verified trajectories for every vehicle. **They are used only to check results, never as an input.** The pipeline sees only the video, and the simulation is calibrated to the video.
+The data is the FHWA NGSIM Lankershim Boulevard set (Los Angeles, 16 June 2005, camera 2, 08:28 to 08:47). NGSIM also publishes hand-verified trajectories for every vehicle. **NGSIM trajectories are an input to camera calibration:** their ground positions are matched to SAM detections to estimate the homography and video/trajectory time offset (`scripts/kalibre.py`). After that calibration, tracks, turning counts, queues, arrivals and signal timings are derived from the video, and SUMO driver parameters are fitted to video queues. NGSIM trajectories are also used as a reference for the reported checks. Because that reference contributes to calibration, these checks are not a fully independent, held-out evaluation.
 
 | Stage | Result | Ground truth |
 |---|---|---|
-| Camera calibration (from data) | median position error 0.62 m on single-frame detections | NGSIM's own stated accuracy is about 0.6 m (X) and 1.2 m (Y) |
+| Camera calibration (SAM detections matched to NGSIM positions) | median fit error 0.62 m on single-frame detections; not a held-out accuracy estimate | NGSIM's own stated accuracy is about 0.6 m (X) and 1.2 m (Y) |
 | Video/trajectory time offset | −0.3 s, found automatically | — |
 | Tracking | 90% of ground-truth vehicle positions tracked (94% for buses and trucks); median error 0.84 m, p90 2.6 m | — |
 | Track identity | median vehicle spends its whole visible time on one track; 81% of vehicles stay ≥90% on one track | — |
@@ -73,11 +73,11 @@ The instructions require that every number comes from a tool result, that per-ap
 
 | Plan (southbound-only left / southbound lead / shared / cross street) | Avg delay per vehicle |
 |---|---|
-| Current plan, recovered from video (15 / 14 / 31 / 33 s, cycle 101 s) | 20.5 s |
+| Current plan, recovered from video (15 / 13 / 32 / 33 s, cycle 101 s) | 20.5 s |
 | Webster textbook plan (14 / 0 / 27 / 30 s, cycle 79 s) | 22.8 s |
 | **Agent's recommendation (15 / 5 / 43 / 30 s, cycle 101 s)** | **18.4 s (−10%)** |
 
-The measured geometry has two left-turn bays for southbound traffic, so the southbound left clears faster than a single bay would allow. The agent kept the 101 s cycle, the protected left and the lead-lag order, shortened the southbound lead (14 → 5 s) and cut the cross street to its pedestrian minimum (33 → 30 s), moving that time into the shared Lankershim green (31 → 43 s). Lankershim gains: from south −3.1 s, from north −1.9 s. The cross street pays a little: from west +0.7 s, from east +0.8 s; the agent reported both, and the verifier flags them. On the real traffic the textbook Webster plan is worse than the current plan (22.8 s against 20.4 s): its short cycle does not clear the morning's southbound queue.
+The measured geometry has two left-turn bays for southbound traffic, so the southbound left clears faster than a single bay would allow. The agent kept the 101 s cycle, the protected left and the lead-lag order, shortened the southbound lead (13 → 5 s) and cut the cross street to its pedestrian minimum (33 → 30 s), moving that time into the shared Lankershim green (32 → 43 s). Lankershim gains: from south −3.1 s, from north −1.9 s. The cross street pays a little: from west +0.7 s, from east +0.8 s; the agent reported both, and the verifier flags them. On the real traffic the textbook Webster plan is worse than the current plan (22.8 s against 20.4 s): its short cycle does not clear the morning's southbound queue.
 
 **Average wait per vehicle, by approach** (time stopped, whole simulation, the video's vehicles, 10 seeds of driver behaviour):
 
