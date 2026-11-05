@@ -1,0 +1,3073 @@
+{
+  "preregistration": {
+    "registered_at_utc": "2026-11-05T07:23:53.350487+00:00",
+    "seeds": [
+      1,
+      2,
+      3
+    ],
+    "candidates": [
+      {
+        "name": "saf_30",
+        "rule": "saf",
+        "parameters": {
+          "max_green_s": 30
+        }
+      },
+      {
+        "name": "saf_45",
+        "rule": "saf",
+        "parameters": {
+          "max_green_s": 45
+        }
+      },
+      {
+        "name": "saf_60",
+        "rule": "saf",
+        "parameters": {
+          "max_green_s": 60
+        }
+      },
+      {
+        "name": "agirlikli_30",
+        "rule": "agirlikli",
+        "parameters": {
+          "max_green_s": 30
+        }
+      },
+      {
+        "name": "agirlikli_45",
+        "rule": "agirlikli",
+        "parameters": {
+          "max_green_s": 45
+        }
+      },
+      {
+        "name": "agirlikli_60",
+        "rule": "agirlikli",
+        "parameters": {
+          "max_green_s": 60
+        }
+      }
+    ],
+    "gates": {
+      "min_mean_delay_improvement_s": 1.0,
+      "max_approach_mean_wait_regression_s": 1.0,
+      "max_p95_wait_regression_s": 2.0,
+      "max_completion_count_drop": 0
+    },
+    "input_hashes": {
+      "data/gelisler.parquet": "894cf2f1f63e4443deb3e22eeb675645f104ae6f9e953b4f14efe4e97e7de6bb",
+      "data/akis_izler.parquet": "36c42626b58ab05f0fa61cbe25efc6837757a9aa314cac35e09546f2c0a25373",
+      "data/geometri.json": "1c7e2e53ac842f0462585b04ee174e5519a2ae73e32c1e76c095f7d658171bb8",
+      "data/sinyal_plani.json": "6d854a996d04c813d14f45ce9ec77646a19bc2843cd623ac5d700721268ff285",
+      "data/sim_kalibrasyon.json": "b3fdc87fb092fcf07f5101743b81480d7f740eb414d938f948be14a0dc3d3453",
+      "web/veri/ozet.json": "d6bb764f73414a67be112485879d4c619ab6e4855dda00287d568103691c05f4",
+      "config/sprint.json": "31064a7a58053e1bc3ffad51fec5466bfe883c3927a2b6b13cba861ed12743a2",
+      "scripts/sprint_adaptive.py": "b5ddf66629cae31978f85c3e12a909795a232fa0bc907f016c75e5fcc948bb88",
+      "src/trafik/aday.py": "97a40a57a15925c27d45431672724b0fc06592e0ec0fb6faa87c454ba11b88b3",
+      "src/trafik/ajan.py": "93e73bcf9148f19b3554dcd323261f4f1409ec8c94ef716f47de9e7170213b90",
+      "src/trafik/akis.py": "5293a7b6dd337e8636750d31f2fcadf2dd98029f18b44d6f838510f42f2897a7",
+      "src/trafik/degerlendir.py": "13ae20f486e26df5c12a78a4fdea5c80e1ebf5418b955ddd6d029f067730caf2",
+      "src/trafik/geometri.py": "27ec3fc7cfbbcabf77b06f7b5b3ed7b90d070b9ab4be8f0ab8dd3e40a82385bf",
+      "src/trafik/kamera.py": "e92bc061b3717e13c2b7d7b77adb992e1e5446b41382eaee15704e8e764997ab",
+      "src/trafik/olcum.py": "332666862880e789ecc30acce632405d207fbd9978d3b9691b3690d3988ff6f5",
+      "src/trafik/sam.py": "7fda0f497b447d8506279a3742acb3336bb7a145acd64856aff12d519a14eb56",
+      "src/trafik/sam_maske.py": "025c790b5ff5aabc188d021993931714e32b0096db9846a1589ae5ef01554dc7",
+      "src/trafik/simule.py": "0d121bb7d1deb5282c2ac5e8357830caec09c7df84d47719be5078f21fdaeeb8",
+      "src/trafik/sonuclar.py": "362861a9a6c54b625dc2a5269e824b4db12b029465846f901f7baa24be3c61f3",
+      "src/trafik/sprint.py": "b8c4ed57734a8728c07921aa192b90aa0e234826a17aa25362c48c646e6ec17d",
+      "src/trafik/sumo_ag.py": "a6df502ef8c6b07d2c16c6c8b971f3dafa4982066257d5b4cfff0f283ec077fb",
+      "src/trafik/takip.py": "5d139961336ea66ca6d322091479e3f7fc33e548740dcf1a7867817c3e3f24f9",
+      "src/trafik/uyarlamali.py": "d910f3044ecd905b3e79e9693bffa34753fb935296888ab958363d4f9f0076d9",
+      "src/trafik/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "additional_guards": [
+      "No insertion-aware total-loss regression",
+      "Apply configured global p95 limit to every approach",
+      "No pedestrian max no-service-gap regression against same rule at max_green=60"
+    ],
+    "selection": "Keep active fixed plan; no automatic policy promotion. A candidate must pass all vehicle gates against both current and selected fixed plans, plus pedestrian guard.",
+    "scope": "Retrospective development on existing video; seeds vary drivers, not independent mornings."
+  },
+  "preregistration_sha256": "f64e7f055e7e8c78e486bcaf6090753a91afef279de715531f30e374fd1b87b6",
+  "input_hashes": {
+    "data/gelisler.parquet": "894cf2f1f63e4443deb3e22eeb675645f104ae6f9e953b4f14efe4e97e7de6bb",
+    "data/akis_izler.parquet": "36c42626b58ab05f0fa61cbe25efc6837757a9aa314cac35e09546f2c0a25373",
+    "data/geometri.json": "1c7e2e53ac842f0462585b04ee174e5519a2ae73e32c1e76c095f7d658171bb8",
+    "data/sinyal_plani.json": "6d854a996d04c813d14f45ce9ec77646a19bc2843cd623ac5d700721268ff285",
+    "data/sim_kalibrasyon.json": "b3fdc87fb092fcf07f5101743b81480d7f740eb414d938f948be14a0dc3d3453",
+    "web/veri/ozet.json": "d6bb764f73414a67be112485879d4c619ab6e4855dda00287d568103691c05f4",
+    "config/sprint.json": "31064a7a58053e1bc3ffad51fec5466bfe883c3927a2b6b13cba861ed12743a2",
+    "scripts/sprint_adaptive.py": "b5ddf66629cae31978f85c3e12a909795a232fa0bc907f016c75e5fcc948bb88",
+    "src/trafik/aday.py": "97a40a57a15925c27d45431672724b0fc06592e0ec0fb6faa87c454ba11b88b3",
+    "src/trafik/ajan.py": "93e73bcf9148f19b3554dcd323261f4f1409ec8c94ef716f47de9e7170213b90",
+    "src/trafik/akis.py": "5293a7b6dd337e8636750d31f2fcadf2dd98029f18b44d6f838510f42f2897a7",
+    "src/trafik/degerlendir.py": "13ae20f486e26df5c12a78a4fdea5c80e1ebf5418b955ddd6d029f067730caf2",
+    "src/trafik/geometri.py": "27ec3fc7cfbbcabf77b06f7b5b3ed7b90d070b9ab4be8f0ab8dd3e40a82385bf",
+    "src/trafik/kamera.py": "e92bc061b3717e13c2b7d7b77adb992e1e5446b41382eaee15704e8e764997ab",
+    "src/trafik/olcum.py": "332666862880e789ecc30acce632405d207fbd9978d3b9691b3690d3988ff6f5",
+    "src/trafik/sam.py": "7fda0f497b447d8506279a3742acb3336bb7a145acd64856aff12d519a14eb56",
+    "src/trafik/sam_maske.py": "025c790b5ff5aabc188d021993931714e32b0096db9846a1589ae5ef01554dc7",
+    "src/trafik/simule.py": "0d121bb7d1deb5282c2ac5e8357830caec09c7df84d47719be5078f21fdaeeb8",
+    "src/trafik/sonuclar.py": "362861a9a6c54b625dc2a5269e824b4db12b029465846f901f7baa24be3c61f3",
+    "src/trafik/sprint.py": "b8c4ed57734a8728c07921aa192b90aa0e234826a17aa25362c48c646e6ec17d",
+    "src/trafik/sumo_ag.py": "a6df502ef8c6b07d2c16c6c8b971f3dafa4982066257d5b4cfff0f283ec077fb",
+    "src/trafik/takip.py": "5d139961336ea66ca6d322091479e3f7fc33e548740dcf1a7867817c3e3f24f9",
+    "src/trafik/uyarlamali.py": "d910f3044ecd905b3e79e9693bffa34753fb935296888ab958363d4f9f0076d9",
+    "src/trafik/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "demand_hashes": {
+    "current": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "agent_recorded": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "saf_30": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "saf_45": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "saf_60": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "agirlikli_30": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "agirlikli_45": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    },
+    "agirlikli_60": {
+      "1": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "2": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c",
+      "3": "70fe4a8c96d5358576cdfbce42a9295191ae61e2296386f601717b12096b925c"
+    }
+  },
+  "results": {
+    "current": {
+      "gecerli": true,
+      "plan": {
+        "sol_onde": 14,
+        "guney_onde": 14,
+        "ortak": 32,
+        "ara_sokak": 33
+      },
+      "ort_gecikme_s": 19.4,
+      "ort_gecikme_tohum_araligi_s": [
+        19.3,
+        19.6
+      ],
+      "p95_gecikme_s": 66.6,
+      "arac_basi_durma_bekleme_s": 11.8,
+      "p95_bekleme_s": 55.0,
+      "en_uzun_bekleme_s": 93.0,
+      "ort_giris_gecikmesi_s": 2.6,
+      "ort_toplam_kayip_s": 22.0,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 11.8,
+        "from east": 15.6,
+        "from south (northbound)": 18.7,
+        "from north (southbound)": 21.3
+      },
+      "kol_bekleme_s": {
+        "from west": 5.4,
+        "from east": 7.9,
+        "from south (northbound)": 11.5,
+        "from north (southbound)": 13.3
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 61.5,
+        "from east": 39.0,
+        "from south (northbound)": 61.5,
+        "from north (southbound)": 50.5
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 3.9,
+        "from east": 0.2,
+        "from south (northbound)": 5.3,
+        "from north (southbound)": 0.7
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 15.7,
+        "from east": 15.8,
+        "from south (northbound)": 24.0,
+        "from north (southbound)": 22.0
+      },
+      "hareket_gecikme_s": {
+        "from west left": 15.7,
+        "from west right": 15.2,
+        "from west through": 7.8,
+        "from east left": 32.8,
+        "from east right": 12.3,
+        "from east through": 18.2,
+        "from south (northbound) left": 56.1,
+        "from south (northbound) right": 9.0,
+        "from south (northbound) through": 20.3,
+        "from north (southbound) left": 36.7,
+        "from north (southbound) right": 9.2,
+        "from north (southbound) through": 16.3
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "agent_recorded": {
+      "gecerli": true,
+      "plan": {
+        "sol_onde": 14,
+        "guney_onde": 14,
+        "ortak": 35,
+        "ara_sokak": 30
+      },
+      "ort_gecikme_s": 17.9,
+      "ort_gecikme_tohum_araligi_s": [
+        17.8,
+        18.0
+      ],
+      "p95_gecikme_s": 64.8,
+      "arac_basi_durma_bekleme_s": 10.5,
+      "p95_bekleme_s": 52.0,
+      "en_uzun_bekleme_s": 93.0,
+      "ort_giris_gecikmesi_s": 1.8,
+      "ort_toplam_kayip_s": 19.7,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 12.7,
+        "from east": 16.1,
+        "from south (northbound)": 17.7,
+        "from north (southbound)": 18.9
+      },
+      "kol_bekleme_s": {
+        "from west": 6.1,
+        "from east": 8.2,
+        "from south (northbound)": 10.8,
+        "from north (southbound)": 11.2
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 64.9,
+        "from east": 42.4,
+        "from south (northbound)": 57.3,
+        "from north (southbound)": 46.5
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 4.2,
+        "from east": 0.2,
+        "from south (northbound)": 3.2,
+        "from north (southbound)": 0.6
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 16.8,
+        "from east": 16.3,
+        "from south (northbound)": 21.0,
+        "from north (southbound)": 19.5
+      },
+      "hareket_gecikme_s": {
+        "from west left": 16.8,
+        "from west right": 15.5,
+        "from west through": 8.5,
+        "from east left": 36.5,
+        "from east right": 12.2,
+        "from east through": 18.9,
+        "from south (northbound) left": 57.7,
+        "from south (northbound) right": 8.5,
+        "from south (northbound) through": 19.1,
+        "from north (southbound) left": 35.5,
+        "from north (southbound) right": 6.7,
+        "from north (southbound) through": 13.4
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "saf_30": {
+      "gecerli": true,
+      "kural": "saf",
+      "parametreler": {
+        "max_green_s": 30
+      },
+      "ort_gecikme_s": 17.3,
+      "ort_gecikme_tohum_araligi_s": [
+        17.1,
+        17.9
+      ],
+      "p95_gecikme_s": 54.9,
+      "arac_basi_durma_bekleme_s": 9.2,
+      "p95_bekleme_s": 42.2,
+      "en_uzun_bekleme_s": 83.5,
+      "ort_giris_gecikmesi_s": 6.3,
+      "ort_toplam_kayip_s": 23.6,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 22.6,
+        "from east": 16.2,
+        "from south (northbound)": 17.3,
+        "from north (southbound)": 16.9
+      },
+      "kol_bekleme_s": {
+        "from west": 14.8,
+        "from east": 8.4,
+        "from south (northbound)": 9.9,
+        "from north (southbound)": 8.1
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 58.9,
+        "from east": 46.1,
+        "from south (northbound)": 54.5,
+        "from north (southbound)": 30.5
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 12.5,
+        "from east": 0.4,
+        "from south (northbound)": 12.6,
+        "from north (southbound)": 1.7
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 35.1,
+        "from east": 16.6,
+        "from south (northbound)": 29.8,
+        "from north (southbound)": 18.6
+      },
+      "hareket_gecikme_s": {
+        "from west left": 24.2,
+        "from west right": 7.2,
+        "from west through": 22.6,
+        "from east left": 36.9,
+        "from east right": 10.2,
+        "from east through": 26.0,
+        "from south (northbound) left": 40.1,
+        "from south (northbound) right": 8.8,
+        "from south (northbound) through": 19.1,
+        "from north (southbound) left": 24.7,
+        "from north (southbound) right": 8.4,
+        "from north (southbound) through": 14.6
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "saf_45": {
+      "gecerli": true,
+      "kural": "saf",
+      "parametreler": {
+        "max_green_s": 45
+      },
+      "ort_gecikme_s": 18.5,
+      "ort_gecikme_tohum_araligi_s": [
+        18.1,
+        18.7
+      ],
+      "p95_gecikme_s": 57.1,
+      "arac_basi_durma_bekleme_s": 10.1,
+      "p95_bekleme_s": 42.0,
+      "en_uzun_bekleme_s": 123.5,
+      "ort_giris_gecikmesi_s": 5.8,
+      "ort_toplam_kayip_s": 24.2,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 23.1,
+        "from east": 16.2,
+        "from south (northbound)": 16.0,
+        "from north (southbound)": 19.8
+      },
+      "kol_bekleme_s": {
+        "from west": 15.6,
+        "from east": 8.8,
+        "from south (northbound)": 8.9,
+        "from north (southbound)": 10.3
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 54.1,
+        "from east": 44.5,
+        "from south (northbound)": 44.5,
+        "from north (southbound)": 38.5
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 10.2,
+        "from east": 0.5,
+        "from south (northbound)": 11.3,
+        "from north (southbound)": 1.9
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 33.4,
+        "from east": 16.7,
+        "from south (northbound)": 27.3,
+        "from north (southbound)": 21.7
+      },
+      "hareket_gecikme_s": {
+        "from west left": 26.4,
+        "from west right": 14.7,
+        "from west through": 21.0,
+        "from east left": 40.9,
+        "from east right": 11.3,
+        "from east through": 20.3,
+        "from south (northbound) left": 46.7,
+        "from south (northbound) right": 8.4,
+        "from south (northbound) through": 17.3,
+        "from north (southbound) left": 34.5,
+        "from north (southbound) right": 10.3,
+        "from north (southbound) through": 14.9
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "saf_60": {
+      "gecerli": true,
+      "kural": "saf",
+      "parametreler": {
+        "max_green_s": 60
+      },
+      "ort_gecikme_s": 17.8,
+      "ort_gecikme_tohum_araligi_s": [
+        17.6,
+        17.9
+      ],
+      "p95_gecikme_s": 61.6,
+      "arac_basi_durma_bekleme_s": 9.9,
+      "p95_bekleme_s": 47.7,
+      "en_uzun_bekleme_s": 114.0,
+      "ort_giris_gecikmesi_s": 5.2,
+      "ort_toplam_kayip_s": 23.0,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 24.5,
+        "from east": 18.1,
+        "from south (northbound)": 14.9,
+        "from north (southbound)": 18.9
+      },
+      "kol_bekleme_s": {
+        "from west": 17.0,
+        "from east": 10.3,
+        "from south (northbound)": 8.1,
+        "from north (southbound)": 10.2
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 81.4,
+        "from east": 50.1,
+        "from south (northbound)": 53.8,
+        "from north (southbound)": 41.0
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 13.6,
+        "from east": 0.4,
+        "from south (northbound)": 8.7,
+        "from north (southbound)": 2.2
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 38.1,
+        "from east": 18.6,
+        "from south (northbound)": 23.6,
+        "from north (southbound)": 21.1
+      },
+      "hareket_gecikme_s": {
+        "from west left": 29.8,
+        "from west right": 15.4,
+        "from west through": 20.4,
+        "from east left": 43.1,
+        "from east right": 11.9,
+        "from east through": 27.0,
+        "from south (northbound) left": 45.2,
+        "from south (northbound) right": 8.1,
+        "from south (northbound) through": 15.8,
+        "from north (southbound) left": 37.0,
+        "from north (southbound) right": 7.9,
+        "from north (southbound) through": 12.8
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "agirlikli_30": {
+      "gecerli": true,
+      "kural": "agirlikli",
+      "parametreler": {
+        "max_green_s": 30
+      },
+      "ort_gecikme_s": 18.0,
+      "ort_gecikme_tohum_araligi_s": [
+        18.0,
+        18.1
+      ],
+      "p95_gecikme_s": 53.7,
+      "arac_basi_durma_bekleme_s": 9.3,
+      "p95_bekleme_s": 37.0,
+      "en_uzun_bekleme_s": 89.5,
+      "ort_giris_gecikmesi_s": 3.8,
+      "ort_toplam_kayip_s": 21.8,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 20.3,
+        "from east": 16.1,
+        "from south (northbound)": 15.1,
+        "from north (southbound)": 20.0
+      },
+      "kol_bekleme_s": {
+        "from west": 12.3,
+        "from east": 8.2,
+        "from south (northbound)": 7.7,
+        "from north (southbound)": 10.2
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 35.5,
+        "from east": 33.6,
+        "from south (northbound)": 35.5,
+        "from north (southbound)": 39.0
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 8.5,
+        "from east": 0.4,
+        "from south (northbound)": 6.0,
+        "from north (southbound)": 2.0
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 28.8,
+        "from east": 16.5,
+        "from south (northbound)": 21.1,
+        "from north (southbound)": 22.0
+      },
+      "hareket_gecikme_s": {
+        "from west left": 23.5,
+        "from west right": 8.0,
+        "from west through": 18.7,
+        "from east left": 35.0,
+        "from east right": 11.8,
+        "from east through": 21.3,
+        "from south (northbound) left": 42.9,
+        "from south (northbound) right": 8.8,
+        "from south (northbound) through": 16.0,
+        "from north (southbound) left": 36.7,
+        "from north (southbound) right": 8.9,
+        "from north (southbound) through": 14.4
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "agirlikli_45": {
+      "gecerli": true,
+      "kural": "agirlikli",
+      "parametreler": {
+        "max_green_s": 45
+      },
+      "ort_gecikme_s": 21.5,
+      "ort_gecikme_tohum_araligi_s": [
+        21.1,
+        21.8
+      ],
+      "p95_gecikme_s": 71.1,
+      "arac_basi_durma_bekleme_s": 12.1,
+      "p95_bekleme_s": 52.5,
+      "en_uzun_bekleme_s": 110.5,
+      "ort_giris_gecikmesi_s": 5.7,
+      "ort_toplam_kayip_s": 27.2,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 23.0,
+        "from east": 15.8,
+        "from south (northbound)": 13.2,
+        "from north (southbound)": 27.7
+      },
+      "kol_bekleme_s": {
+        "from west": 15.7,
+        "from east": 7.9,
+        "from south (northbound)": 6.4,
+        "from north (southbound)": 16.1
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 49.5,
+        "from east": 40.0,
+        "from south (northbound)": 38.5,
+        "from north (southbound)": 64.8
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 9.1,
+        "from east": 0.4,
+        "from south (northbound)": 6.7,
+        "from north (southbound)": 5.1
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 32.1,
+        "from east": 16.2,
+        "from south (northbound)": 19.9,
+        "from north (southbound)": 32.8
+      },
+      "hareket_gecikme_s": {
+        "from west left": 25.3,
+        "from west right": 24.3,
+        "from west through": 20.7,
+        "from east left": 28.6,
+        "from east right": 12.8,
+        "from east through": 19.7,
+        "from south (northbound) left": 45.2,
+        "from south (northbound) right": 7.1,
+        "from south (northbound) through": 13.8,
+        "from north (southbound) left": 58.5,
+        "from north (southbound) right": 10.1,
+        "from north (southbound) through": 17.3
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    },
+    "agirlikli_60": {
+      "gecerli": true,
+      "kural": "agirlikli",
+      "parametreler": {
+        "max_green_s": 60
+      },
+      "ort_gecikme_s": 20.1,
+      "ort_gecikme_tohum_araligi_s": [
+        19.9,
+        20.4
+      ],
+      "p95_gecikme_s": 69.7,
+      "arac_basi_durma_bekleme_s": 11.2,
+      "p95_bekleme_s": 50.0,
+      "en_uzun_bekleme_s": 134.0,
+      "ort_giris_gecikmesi_s": 3.4,
+      "ort_toplam_kayip_s": 23.5,
+      "tamamlanan_arac": 1191,
+      "tam_karsilastirma": true,
+      "tohum_talep_durumu": {
+        "1": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "2": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        },
+        "3": {
+          "planlanan": 1191,
+          "tamamlanan": 1191,
+          "agda_tamamlanmayan": 0,
+          "girememis": 0,
+          "kaydi_eksik": 0,
+          "kohortu_belirsiz": 0
+        }
+      },
+      "kol_gecikme_s": {
+        "from west": 25.4,
+        "from east": 17.8,
+        "from south (northbound)": 12.8,
+        "from north (southbound)": 24.8
+      },
+      "kol_bekleme_s": {
+        "from west": 17.1,
+        "from east": 9.7,
+        "from south (northbound)": 6.0,
+        "from north (southbound)": 14.2
+      },
+      "kol_p95_bekleme_s": {
+        "from west": 61.2,
+        "from east": 46.5,
+        "from south (northbound)": 34.0,
+        "from north (southbound)": 58.0
+      },
+      "kol_giris_gecikmesi_s": {
+        "from west": 10.4,
+        "from east": 0.3,
+        "from south (northbound)": 4.7,
+        "from north (southbound)": 1.9
+      },
+      "kol_toplam_kayip_s": {
+        "from west": 35.7,
+        "from east": 18.0,
+        "from south (northbound)": 17.5,
+        "from north (southbound)": 26.8
+      },
+      "hareket_gecikme_s": {
+        "from west left": 29.5,
+        "from west right": 12.0,
+        "from west through": 22.8,
+        "from east left": 36.9,
+        "from east right": 11.4,
+        "from east through": 30.1,
+        "from south (northbound) left": 41.7,
+        "from south (northbound) right": 7.8,
+        "from south (northbound) through": 13.2,
+        "from north (southbound) left": 57.1,
+        "from north (southbound) right": 9.3,
+        "from north (southbound) through": 13.6
+      },
+      "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; toplam_kayip adds it. Neither insertion delay nor total loss is observed stopped time. Do not rank a plan with tam_karsilastirma=false as a complete-demand improvement."
+    }
+  },
+  "assessments": {
+    "saf_30": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": true,
+              "baseline": 19.4,
+              "candidate": 17.3,
+              "candidate_minus_baseline_s": -2.1,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 22.0,
+              "candidate": 23.6,
+              "candidate_minus_baseline_s": 1.6,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 42.2,
+              "candidate_minus_baseline_s": -12.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 13.3,
+              "candidate": 8.1,
+              "candidate_minus_baseline_s": -5.2,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 9.9,
+              "candidate_minus_baseline_s": -1.6,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 7.9,
+              "candidate": 8.4,
+              "candidate_minus_baseline_s": 0.5,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 14.8,
+              "candidate_minus_baseline_s": 9.4,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 50.5,
+              "candidate": 30.5,
+              "candidate_minus_baseline_s": -20.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 54.5,
+              "candidate_minus_baseline_s": -7.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 39.0,
+              "candidate": 46.1,
+              "candidate_minus_baseline_s": 7.1,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 58.9,
+              "candidate_minus_baseline_s": -2.6,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 17.3,
+              "candidate_minus_baseline_s": -0.6,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 23.6,
+              "candidate_minus_baseline_s": 3.9,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 42.2,
+              "candidate_minus_baseline_s": -9.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 11.2,
+              "candidate": 8.1,
+              "candidate_minus_baseline_s": -3.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 9.9,
+              "candidate_minus_baseline_s": -0.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 8.2,
+              "candidate": 8.4,
+              "candidate_minus_baseline_s": 0.2,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 14.8,
+              "candidate_minus_baseline_s": 8.7,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 46.5,
+              "candidate": 30.5,
+              "candidate_minus_baseline_s": -16.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 54.5,
+              "candidate_minus_baseline_s": -2.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 42.4,
+              "candidate": 46.1,
+              "candidate_minus_baseline_s": 3.7,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 64.9,
+              "candidate": 58.9,
+              "candidate_minus_baseline_s": -6.0,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": false,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 175.5,
+            "candidate_max_no_service_gap_s": 173.5,
+            "passed": true
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 129.5,
+            "candidate_max_no_service_gap_s": 115.5,
+            "passed": true
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 167.5,
+            "candidate_max_no_service_gap_s": 172.5,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 131.0,
+            "candidate_max_no_service_gap_s": 125.5,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 174.5,
+            "candidate_max_no_service_gap_s": 172.5,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 142.5,
+            "candidate_max_no_service_gap_s": 125.5,
+            "passed": true
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    },
+    "saf_45": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 19.4,
+              "candidate": 18.5,
+              "candidate_minus_baseline_s": -0.9,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 22.0,
+              "candidate": 24.2,
+              "candidate_minus_baseline_s": 2.2,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 42.0,
+              "candidate_minus_baseline_s": -13.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 13.3,
+              "candidate": 10.3,
+              "candidate_minus_baseline_s": -3.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 8.9,
+              "candidate_minus_baseline_s": -2.6,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 7.9,
+              "candidate": 8.8,
+              "candidate_minus_baseline_s": 0.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 15.6,
+              "candidate_minus_baseline_s": 10.2,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 50.5,
+              "candidate": 38.5,
+              "candidate_minus_baseline_s": -12.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 44.5,
+              "candidate_minus_baseline_s": -17.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 39.0,
+              "candidate": 44.5,
+              "candidate_minus_baseline_s": 5.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 54.1,
+              "candidate_minus_baseline_s": -7.4,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 18.5,
+              "candidate_minus_baseline_s": 0.6,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 24.2,
+              "candidate_minus_baseline_s": 4.5,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 42.0,
+              "candidate_minus_baseline_s": -10.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 11.2,
+              "candidate": 10.3,
+              "candidate_minus_baseline_s": -0.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 8.9,
+              "candidate_minus_baseline_s": -1.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 8.2,
+              "candidate": 8.8,
+              "candidate_minus_baseline_s": 0.6,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 15.6,
+              "candidate_minus_baseline_s": 9.5,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 46.5,
+              "candidate": 38.5,
+              "candidate_minus_baseline_s": -8.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 44.5,
+              "candidate_minus_baseline_s": -12.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 42.4,
+              "candidate": 44.5,
+              "candidate_minus_baseline_s": 2.1,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 64.9,
+              "candidate": 54.1,
+              "candidate_minus_baseline_s": -10.8,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": false,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 175.5,
+            "candidate_max_no_service_gap_s": 170.0,
+            "passed": true
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 129.5,
+            "candidate_max_no_service_gap_s": 130.0,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 167.5,
+            "candidate_max_no_service_gap_s": 171.5,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 131.0,
+            "candidate_max_no_service_gap_s": 130.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 174.5,
+            "candidate_max_no_service_gap_s": 173.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 142.5,
+            "candidate_max_no_service_gap_s": 142.5,
+            "passed": true
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    },
+    "saf_60": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from east",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east",
+            "kol_p95_bekleme_s:from west"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": true,
+              "baseline": 19.4,
+              "candidate": 17.8,
+              "candidate_minus_baseline_s": -1.6,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 22.0,
+              "candidate": 23.0,
+              "candidate_minus_baseline_s": 1.0,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 47.7,
+              "candidate_minus_baseline_s": -7.3,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 13.3,
+              "candidate": 10.2,
+              "candidate_minus_baseline_s": -3.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 8.1,
+              "candidate_minus_baseline_s": -3.4,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": false,
+              "baseline": 7.9,
+              "candidate": 10.3,
+              "candidate_minus_baseline_s": 2.4,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 17.0,
+              "candidate_minus_baseline_s": 11.6,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 50.5,
+              "candidate": 41.0,
+              "candidate_minus_baseline_s": -9.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 53.8,
+              "candidate_minus_baseline_s": -7.7,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 39.0,
+              "candidate": 50.1,
+              "candidate_minus_baseline_s": 11.1,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": false,
+              "baseline": 61.5,
+              "candidate": 81.4,
+              "candidate_minus_baseline_s": 19.9,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from east",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from east",
+            "kol_p95_bekleme_s:from west"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 17.8,
+              "candidate_minus_baseline_s": -0.1,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 23.0,
+              "candidate_minus_baseline_s": 3.3,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 47.7,
+              "candidate_minus_baseline_s": -4.3,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 11.2,
+              "candidate": 10.2,
+              "candidate_minus_baseline_s": -1.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 8.1,
+              "candidate_minus_baseline_s": -2.7,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": false,
+              "baseline": 8.2,
+              "candidate": 10.3,
+              "candidate_minus_baseline_s": 2.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 17.0,
+              "candidate_minus_baseline_s": 10.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 46.5,
+              "candidate": 41.0,
+              "candidate_minus_baseline_s": -5.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 53.8,
+              "candidate_minus_baseline_s": -3.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 42.4,
+              "candidate": 50.1,
+              "candidate_minus_baseline_s": 7.7,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": false,
+              "baseline": 64.9,
+              "candidate": 81.4,
+              "candidate_minus_baseline_s": 16.5,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": true,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 175.5,
+            "candidate_max_no_service_gap_s": 175.5,
+            "passed": true
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 129.5,
+            "candidate_max_no_service_gap_s": 129.5,
+            "passed": true
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 167.5,
+            "candidate_max_no_service_gap_s": 167.5,
+            "passed": true
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 131.0,
+            "candidate_max_no_service_gap_s": 131.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 174.5,
+            "candidate_max_no_service_gap_s": 174.5,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 142.5,
+            "candidate_max_no_service_gap_s": 142.5,
+            "passed": true
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    },
+    "agirlikli_30": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "kol_bekleme_s:from west"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": true,
+              "baseline": 19.4,
+              "candidate": 18.0,
+              "candidate_minus_baseline_s": -1.4,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": true,
+              "baseline": 22.0,
+              "candidate": 21.8,
+              "candidate_minus_baseline_s": -0.2,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 37.0,
+              "candidate_minus_baseline_s": -18.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 13.3,
+              "candidate": 10.2,
+              "candidate_minus_baseline_s": -3.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 7.7,
+              "candidate_minus_baseline_s": -3.8,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 7.9,
+              "candidate": 8.2,
+              "candidate_minus_baseline_s": 0.3,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 12.3,
+              "candidate_minus_baseline_s": 6.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 50.5,
+              "candidate": 39.0,
+              "candidate_minus_baseline_s": -11.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 35.5,
+              "candidate_minus_baseline_s": -26.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": true,
+              "baseline": 39.0,
+              "candidate": 33.6,
+              "candidate_minus_baseline_s": -5.4,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 35.5,
+              "candidate_minus_baseline_s": -26.0,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from west"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 18.0,
+              "candidate_minus_baseline_s": 0.1,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 21.8,
+              "candidate_minus_baseline_s": 2.1,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 37.0,
+              "candidate_minus_baseline_s": -15.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 11.2,
+              "candidate": 10.2,
+              "candidate_minus_baseline_s": -1.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 7.7,
+              "candidate_minus_baseline_s": -3.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 8.2,
+              "candidate": 8.2,
+              "candidate_minus_baseline_s": 0.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 12.3,
+              "candidate_minus_baseline_s": 6.2,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 46.5,
+              "candidate": 39.0,
+              "candidate_minus_baseline_s": -7.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 35.5,
+              "candidate_minus_baseline_s": -21.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": true,
+              "baseline": 42.4,
+              "candidate": 33.6,
+              "candidate_minus_baseline_s": -8.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 64.9,
+              "candidate": 35.5,
+              "candidate_minus_baseline_s": -29.4,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": false,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 175.0,
+            "passed": false
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 105.5,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 175.0,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 105.5,
+            "passed": false
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 171.0,
+            "candidate_max_no_service_gap_s": 175.0,
+            "passed": false
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 122.5,
+            "candidate_max_no_service_gap_s": 105.5,
+            "passed": true
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    },
+    "agirlikli_45": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from north (southbound)",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from north (southbound)"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 19.4,
+              "candidate": 21.5,
+              "candidate_minus_baseline_s": 2.1,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 22.0,
+              "candidate": 27.2,
+              "candidate_minus_baseline_s": 5.2,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 52.5,
+              "candidate_minus_baseline_s": -2.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 13.3,
+              "candidate": 16.1,
+              "candidate_minus_baseline_s": 2.8,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 6.4,
+              "candidate_minus_baseline_s": -5.1,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 7.9,
+              "candidate": 7.9,
+              "candidate_minus_baseline_s": 0.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 15.7,
+              "candidate_minus_baseline_s": 10.3,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 50.5,
+              "candidate": 64.8,
+              "candidate_minus_baseline_s": 14.3,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 38.5,
+              "candidate_minus_baseline_s": -23.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": true,
+              "baseline": 39.0,
+              "candidate": 40.0,
+              "candidate_minus_baseline_s": 1.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 49.5,
+              "candidate_minus_baseline_s": -12.0,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from north (southbound)",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from north (southbound)"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 21.5,
+              "candidate_minus_baseline_s": 3.6,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 27.2,
+              "candidate_minus_baseline_s": 7.5,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 52.5,
+              "candidate_minus_baseline_s": 0.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 11.2,
+              "candidate": 16.1,
+              "candidate_minus_baseline_s": 4.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 6.4,
+              "candidate_minus_baseline_s": -4.4,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": true,
+              "baseline": 8.2,
+              "candidate": 7.9,
+              "candidate_minus_baseline_s": -0.3,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 15.7,
+              "candidate_minus_baseline_s": 9.6,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 46.5,
+              "candidate": 64.8,
+              "candidate_minus_baseline_s": 18.3,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 38.5,
+              "candidate_minus_baseline_s": -18.8,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": true,
+              "baseline": 42.4,
+              "candidate": 40.0,
+              "candidate_minus_baseline_s": -2.4,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 64.9,
+              "candidate": 49.5,
+              "candidate_minus_baseline_s": -15.4,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": false,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 171.0,
+            "passed": false
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 86.5,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 171.5,
+            "passed": false
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 127.5,
+            "passed": false
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 171.0,
+            "candidate_max_no_service_gap_s": 171.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 122.5,
+            "candidate_max_no_service_gap_s": 127.5,
+            "passed": false
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    },
+    "agirlikli_60": {
+      "accepted": false,
+      "vehicle_gates": {
+        "current": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from east",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from north (southbound)",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 19.4,
+              "candidate": 20.1,
+              "candidate_minus_baseline_s": 0.7,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 22.0,
+              "candidate": 23.5,
+              "candidate_minus_baseline_s": 1.5,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 55.0,
+              "candidate": 50.0,
+              "candidate_minus_baseline_s": -5.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": true,
+              "baseline": 13.3,
+              "candidate": 14.2,
+              "candidate_minus_baseline_s": 0.9,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 11.5,
+              "candidate": 6.0,
+              "candidate_minus_baseline_s": -5.5,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": false,
+              "baseline": 7.9,
+              "candidate": 9.7,
+              "candidate_minus_baseline_s": 1.8,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 5.4,
+              "candidate": 17.1,
+              "candidate_minus_baseline_s": 11.7,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 50.5,
+              "candidate": 58.0,
+              "candidate_minus_baseline_s": 7.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 34.0,
+              "candidate_minus_baseline_s": -27.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 39.0,
+              "candidate": 46.5,
+              "candidate_minus_baseline_s": 7.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 61.5,
+              "candidate": 61.2,
+              "candidate_minus_baseline_s": -0.3,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        },
+        "agent_recorded": {
+          "accepted": false,
+          "rejection_reasons": [
+            "ort_gecikme_s",
+            "ort_toplam_kayip_s",
+            "kol_bekleme_s:from north (southbound)",
+            "kol_bekleme_s:from east",
+            "kol_bekleme_s:from west",
+            "kol_p95_bekleme_s:from north (southbound)",
+            "kol_p95_bekleme_s:from east"
+          ],
+          "checks": [
+            {
+              "code": "baseline_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "candidate_metrics_mapping",
+              "passed": true
+            },
+            {
+              "code": "paired_seeds",
+              "passed": true,
+              "baseline": [
+                1,
+                2,
+                3
+              ],
+              "candidate": [
+                1,
+                2,
+                3
+              ]
+            },
+            {
+              "code": "identical_scheduled_demand",
+              "passed": true
+            },
+            {
+              "code": "baseline_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "candidate_complete_demand",
+              "passed": true
+            },
+            {
+              "code": "completion_count_drop",
+              "passed": true,
+              "per_seed_drop": {
+                "2": 0,
+                "1": 0,
+                "3": 0
+              },
+              "maximum": 0
+            },
+            {
+              "code": "ort_gecikme_s",
+              "passed": false,
+              "baseline": 17.9,
+              "candidate": 20.1,
+              "candidate_minus_baseline_s": 2.2,
+              "maximum_delta_s": -1.0
+            },
+            {
+              "code": "ort_toplam_kayip_s",
+              "passed": false,
+              "baseline": 19.7,
+              "candidate": 23.5,
+              "candidate_minus_baseline_s": 3.8,
+              "maximum_delta_s": 0.0
+            },
+            {
+              "code": "p95_bekleme_s",
+              "passed": true,
+              "baseline": 52.0,
+              "candidate": 50.0,
+              "candidate_minus_baseline_s": -2.0,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 11.2,
+              "candidate": 14.2,
+              "candidate_minus_baseline_s": 3.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 10.8,
+              "candidate": 6.0,
+              "candidate_minus_baseline_s": -4.8,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from east",
+              "passed": false,
+              "baseline": 8.2,
+              "candidate": 9.7,
+              "candidate_minus_baseline_s": 1.5,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_bekleme_s:from west",
+              "passed": false,
+              "baseline": 6.1,
+              "candidate": 17.1,
+              "candidate_minus_baseline_s": 11.0,
+              "maximum_delta_s": 1.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from north (southbound)",
+              "passed": false,
+              "baseline": 46.5,
+              "candidate": 58.0,
+              "candidate_minus_baseline_s": 11.5,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from south (northbound)",
+              "passed": true,
+              "baseline": 57.3,
+              "candidate": 34.0,
+              "candidate_minus_baseline_s": -23.3,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from east",
+              "passed": false,
+              "baseline": 42.4,
+              "candidate": 46.5,
+              "candidate_minus_baseline_s": 4.1,
+              "maximum_delta_s": 2.0
+            },
+            {
+              "code": "kol_p95_bekleme_s:from west",
+              "passed": true,
+              "baseline": 64.9,
+              "candidate": 61.2,
+              "candidate_minus_baseline_s": -3.7,
+              "maximum_delta_s": 2.0
+            }
+          ],
+          "gates": {
+            "min_mean_delay_improvement_s": 1.0,
+            "max_approach_mean_wait_regression_s": 1.0,
+            "max_p95_wait_regression_s": 2.0,
+            "max_completion_count_drop": 0
+          },
+          "additional_guards": {
+            "max_combined_loss_regression_s": 0.0,
+            "max_approach_p95_wait_regression_s": 2.0
+          },
+          "scope": "Retrospective engineering gates on paired demand; configured mean improvement applies to in-network loss. Additional guards forbid combined-loss regression and apply the global P95 limit to every approach. Missing evidence rejects acceptance; these are not field-safety guarantees."
+        }
+      },
+      "pedestrian_guard": {
+        "passed": true,
+        "checks": [
+          {
+            "seed": 1,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 154.5,
+            "passed": true
+          },
+          {
+            "seed": 1,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 59.0,
+            "passed": true
+          },
+          {
+            "seed": 2,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 154.5,
+            "candidate_max_no_service_gap_s": 154.5,
+            "passed": true
+          },
+          {
+            "seed": 2,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 59.0,
+            "candidate_max_no_service_gap_s": 59.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ara",
+            "baseline_max_no_service_gap_s": 171.0,
+            "candidate_max_no_service_gap_s": 171.0,
+            "passed": true
+          },
+          {
+            "seed": 3,
+            "phase": "ortak",
+            "baseline_max_no_service_gap_s": 122.5,
+            "candidate_max_no_service_gap_s": 122.5,
+            "passed": true
+          }
+        ],
+        "scope": "Additional no-regression guard against the same adaptive rule at 60 s. Continuous green after the required crossing duration counts as available service. These are assumed requests, not pedestrian trajectories or a 120 s deadline guarantee."
+      }
+    }
+  },
+  "accepted_candidates": [],
+  "active_policy_changed": false,
+  "evidence_directory": "data/sprint/pipeline-20261104T203900384894Z/data/sprint/adaptive-20261105T072353025596Z",
+  "conclusion": "All candidates failing any gate remain experimental. No policy is promoted automatically."
+}

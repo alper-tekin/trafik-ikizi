@@ -491,6 +491,19 @@ function simSetup() {
   const max = (sA.length - 1) / 2;
   $('#simT').max = max;
   let t = 0, playing = false, last = 0;
+  const decision = $('#simDecision');
+  const phaseNames = { guney: 'Southbound', ortak: 'Lankershim', ara: 'Cross street' };
+  const reasons = { pedestrian_service_due: 'assumed pedestrian service due',
+                    maximum_green: 'green-time limit reached', demand_cleared: 'nearby demand cleared' };
+  let shownDecision;
+
+  function renderDecision() {
+    const event = SIM_B.kararlar?.findLast(e => e.t <= Math.floor(t * 2) / 2);
+    if (event === shownDecision) return;
+    shownDecision = event;
+    decision.hidden = !event;
+    if (event) decision.textContent = `Last change: ${phaseNames[event.from]} → ${phaseNames[event.to]} · ${reasons[event.reason]} after ${event.green_elapsed_s} s of green.`;
+  }
 
   const playhead = {
     id: 'playhead',
@@ -531,6 +544,7 @@ function simSetup() {
     $('#simBcum').textContent = (cB[i] / 60).toFixed(1);
     $('#simT').value = t;
     $('#simClock').textContent = RASTGELE ? fmt(t) : 'video ' + fmt(SIM_A.baslangic_s + t);
+    renderDecision();
     chart.draw();
   }
   $('#simT').oninput = e => { t = +e.target.value; render(); };

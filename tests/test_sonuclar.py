@@ -66,6 +66,16 @@ class TripAccounting(unittest.TestCase):
         with self.assertRaises(ValueError):
             ozetle(rows, (1, 1))
 
+    def test_approach_tail_wait_is_not_hidden_by_other_approaches(self):
+        rows = self.read('<vehicle id="Ks.1" depart="120"/><vehicle id="Ks.2" depart="120"/>'
+                         '<vehicle id="Bs.1" depart="120"/>',
+                         '<tripinfo id="Ks.1" depart="120" departDelay="0" arrival="130" timeLoss="2" waitingTime="0"/>'
+                         '<tripinfo id="Ks.2" depart="120" departDelay="0" arrival="230" timeLoss="100" waitingTime="100"/>'
+                         '<tripinfo id="Bs.1" depart="120" departDelay="0" arrival="130" timeLoss="2" waitingTime="1"/>')
+        result = ozetle(rows, (1,))
+        self.assertEqual(result["kol_p95_bekleme_s"]["from north (southbound)"], 95)
+        self.assertEqual(result["kol_p95_bekleme_s"]["from west"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

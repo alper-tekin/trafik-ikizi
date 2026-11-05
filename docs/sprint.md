@@ -8,9 +8,9 @@ Status: **started**. This document tracks delivered work separately from planned
 |---|---|---|
 | Freeze current inputs and reproduce the baseline | Implemented; see `reports/sprint-start.json` | Versioned protocol, input hashes, package versions, fresh simulation and recorded-result comparison |
 | Diagnose side-street measurement/model errors | Matching fix and coherent rebuild delivered; side-street uncertainty remains | Review extreme tracks, insertion delays, signal timing and matched vehicle populations before changing calibration |
-| Balance the adaptive controller | Pending | Compare mean, p95, per-approach wait, completion and pedestrian service on paired demand |
+| Balance the adaptive controller | Six candidates screened; see `reports/adaptive-sprint.md` | Compare mean, p95, per-approach wait, completion and pedestrian service on paired demand |
 | Let Muse Spark test adaptive parameters and additional baselines | Pending | Only recommend tested candidates; use the same demand and evaluation budget |
-| Explain signal decisions in the existing UI | Pending | Show why a phase was selected, including tradeoffs |
+| Explain signal decisions in the existing UI | Delivered for adaptive playback | Show why a phase was selected, including tradeoffs |
 | New fixed-camera video setup prototype | Pending | User-assisted metric calibration and lane validation without NGSIM trajectories |
 | Final evaluation | Pending | Frozen parameters; separate evidence on a new period/video, with all limitations recorded |
 
@@ -87,7 +87,7 @@ Simulation scratch files live under `sim/`, which is ignored.
 4. Audit whether the synthetic-demand mode changes arrival schedules across seeds
    or only driver behaviour before treating its runs as different mornings.
 
-Current delivery includes shared accounting, matching correction, a revalidated fixed-plan recommendation and rebuilt UI artifacts; adaptive policy changes are still pending.
+Current delivery includes shared accounting, matching correction, a revalidated fixed-plan recommendation and rebuilt UI artifacts; adaptive tuning is reported below.
 
 
 ## Follow-up delivery
@@ -97,4 +97,9 @@ See [the follow-up report](../reports/sprint-followup.md). Shared fixed/adaptive
 
 ## Tracking rebuild delivery
 
-The current release uses 1,191 vehicles and comparison seeds 1,2,3, explicitly recorded in the UI. The gated matching fix removes the false long-wait identity association without enabling the experimental camera polygon. Tracking continuity improves; count error increases slightly and remains disclosed. Current numbers are in [the rebuild report](../reports/tracking-rebuild.json). The fixed-plan search was approved and limited to 12 tool steps. Its final partial response was locally completed by the verifier; total API cost could not be reconstructed. Per-step checkpointing now prevents losing future usage/results on API failure. New video evaluation and adaptive fairness remain pending.
+The current release uses 1,191 vehicles and comparison seeds 1,2,3, explicitly recorded in the UI. The gated matching fix removes the false long-wait identity association without enabling the experimental camera polygon. Tracking continuity improves; count error increases slightly and remains disclosed. Current numbers are in [the rebuild report](../reports/tracking-rebuild.json). The fixed-plan search was approved and limited to 12 tool steps. Its final partial response was locally completed by the verifier; total API cost could not be reconstructed. Per-step checkpointing now prevents losing future usage/results on API failure. Independent new-video evaluation remains pending.
+
+
+## Adaptive fairness and replay explanations
+
+See [the adaptive experiment](../reports/adaptive-sprint.md) for six preregistered candidates on the same arrivals and driver seeds. None of the six candidates passed all gates. The active fixed plan is unchanged. Adaptive playback shows why the latest transition was requested; full phase and assumed pedestrian service logs are retained with each local run. The pedestrian service proxy does not model individual crossings.

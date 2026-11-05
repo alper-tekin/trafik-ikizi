@@ -19,6 +19,7 @@ import pandas as pd
 
 from trafik import olcum
 from trafik.akis import BUYUK_FT, talep_sayimlari, yerel
+from trafik.degerlendir import ISINMA_S
 from trafik.simule import calistir
 from trafik.sumo_ag import faz_plani_surelerden, kayit_faz0, kur, video_ofseti
 from trafik.sprint import sha256
@@ -53,7 +54,7 @@ def son_ajan_kosusu() -> dict:
     if not yollar:
         raise FileNotFoundError("tamamlanmış ajan koşusu yok")
     k = json.loads(yollar[-1].read_text(encoding="utf-8"))
-    if not k.get("cevap"):
+    if not k.get("cevap") or k.get("durum", "tamamlandi") != "tamamlandi":
         raise ValueError("En son ajan koşusu tamamlanmamış; eski öneriye sessizce dönülmeyecek")
     return k
 
@@ -101,6 +102,22 @@ def kareler_penceresi(d: pd.DataFrame) -> dict:
             for t, g in d.groupby("t")}
 
 
+def karar_penceresi(kararlar: list[dict], baslangic: float, bitis: float) -> list[dict]:
+    """Use replay-relative seconds and keep the last transition before the window."""
+    pencere, onceki = [], None
+    for karar in kararlar:
+        if karar["olay"] != "transition_requested" or karar["t"] >= bitis:
+            continue
+        kayit = {"t": karar["t"] - baslangic, "from": karar["onceki_faz"],
+                 "to": karar["sonraki_faz"], "reason": karar["neden"],
+                 "green_elapsed_s": karar["gecen_yesil_s"]}
+        if kayit["t"] < 0:
+            onceki = kayit
+        else:
+            pencere.append(kayit)
+    return ([onceki] if onceki else []) + pencere
+
+
 def oynatma_uyarlamali(kural: str, sayim: dict, surucu: dict, gelis: str = "gercek") -> dict:
     """Uyarlamalı sinyal (uyarlamali.py): sabit döngü yok; her karenin sinyal durumu ve faz adı kaydedilir."""
     from trafik import uyarlamali
@@ -109,7 +126,9 @@ def oynatma_uyarlamali(kural: str, sayim: dict, surucu: dict, gelis: str = "gerc
     k = uyarlamali.calistir(cfg, kural, 1, kayit=True)
     d = k["noktalar"]
     durumlar = [[s, ad] for t, s, ad in k["durumlar"] if OYNATMA_S[0] <= t < OYNATMA_S[1]]
-    return {"kural": kural, "gelis": gelis, "sinyal": [], "durumlar": durumlar, "isinma_s": 120.0, "ofset_s": 0.0,
+    kararlar = karar_penceresi(k["kararlar"], *(t + ISINMA_S for t in OYNATMA_S))
+    return {"kural": kural, "gelis": gelis, "sinyal": [], "durumlar": durumlar, "kararlar": kararlar,
+            "isinma_s": ISINMA_S, "ofset_s": 0.0,
             "baslangic_s": OYNATMA_S[0], "kareler": kareler_penceresi(d),
             "arac_bekleme": arac_beklemeleri(d[d.t < SURE_S]) if gelis == "gercek" else {}}
 

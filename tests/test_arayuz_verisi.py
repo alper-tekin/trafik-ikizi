@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from scripts.arayuz_verisi import KARSILASTIRMA_ALANLARI, plan_ozeti, son_ajan_kosusu
+from scripts.arayuz_verisi import KARSILASTIRMA_ALANLARI, karar_penceresi, plan_ozeti, son_ajan_kosusu
 
 
 class UIDataEvaluation(unittest.TestCase):
@@ -26,6 +26,17 @@ class UIDataEvaluation(unittest.TestCase):
             with patch("scripts.arayuz_verisi.Path.glob", return_value=[old,latest]):
                 with self.assertRaises(ValueError):
                     son_ajan_kosusu()
+                latest.write_text(json.dumps({"cevap":{"recommended_plan":{}}, "durum":"dogrulama_hatasi"}))
+                with self.assertRaises(ValueError):
+                    son_ajan_kosusu()
+
+    def test_adaptive_decision_window_keeps_carry_in_and_ignores_completion_event(self):
+        def transition(t):
+            return {"olay":"transition_requested", "t":t, "onceki_faz":"ortak", "sonraki_faz":"ara",
+                    "neden":"pedestrian_service_due", "gecen_yesil_s":30.0}
+        events = [transition(400), transition(419.5), {"olay":"green_start", "t":423.5},
+                  transition(450), transition(720)]
+        self.assertEqual([x["t"] for x in karar_penceresi(events, 420, 720)], [-0.5, 30])
 
 
 if __name__ == "__main__":

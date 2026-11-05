@@ -101,6 +101,8 @@ def ozetle(d: pd.DataFrame, tohumlar: tuple) -> dict:
                                   and c["kohortu_belirsiz"] == 0 for c in counts.values()),
         "tohum_talep_durumu": counts,
         "kol_gecikme_s": by_arm("gecikme"), "kol_bekleme_s": by_arm("bekleme"),
+        "kol_p95_bekleme_s": {KOL_ADI[k]: number(v) for k, v in
+                              completed.groupby("kol").bekleme.quantile(0.95).items()} if not completed.empty else {},
         "kol_giris_gecikmesi_s": by_arm("giris_gecikmesi"), "kol_toplam_kayip_s": by_arm("toplam_kayip"),
         "hareket_gecikme_s": {f"{KOL_ADI[k]} {HAREKET_ADI[h]}": number(v) for (k, h), v in moves.items()},
         "olcum_notu": "Means and quantiles describe completed trips only. timeLoss excludes insertion delay; "

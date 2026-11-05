@@ -16,6 +16,9 @@
     "data/sinyal_plani.json": "6d854a996d04c813d14f45ce9ec77646a19bc2843cd623ac5d700721268ff285",
     "data/sim_kalibrasyon.json": "b3fdc87fb092fcf07f5101743b81480d7f740eb414d938f948be14a0dc3d3453",
     "web/veri/ozet.json": "d6bb764f73414a67be112485879d4c619ab6e4855dda00287d568103691c05f4",
+    "config/sprint.json": "31064a7a58053e1bc3ffad51fec5466bfe883c3927a2b6b13cba861ed12743a2",
+    "scripts/sprint_adaptive.py": "b5ddf66629cae31978f85c3e12a909795a232fa0bc907f016c75e5fcc948bb88",
+    "src/trafik/aday.py": "97a40a57a15925c27d45431672724b0fc06592e0ec0fb6faa87c454ba11b88b3",
     "src/trafik/ajan.py": "93e73bcf9148f19b3554dcd323261f4f1409ec8c94ef716f47de9e7170213b90",
     "src/trafik/akis.py": "5293a7b6dd337e8636750d31f2fcadf2dd98029f18b44d6f838510f42f2897a7",
     "src/trafik/degerlendir.py": "13ae20f486e26df5c12a78a4fdea5c80e1ebf5418b955ddd6d029f067730caf2",
@@ -25,11 +28,11 @@
     "src/trafik/sam.py": "7fda0f497b447d8506279a3742acb3336bb7a145acd64856aff12d519a14eb56",
     "src/trafik/sam_maske.py": "025c790b5ff5aabc188d021993931714e32b0096db9846a1589ae5ef01554dc7",
     "src/trafik/simule.py": "0d121bb7d1deb5282c2ac5e8357830caec09c7df84d47719be5078f21fdaeeb8",
-    "src/trafik/sonuclar.py": "f28e432db5a9f2f8e3c7271513c6399652fbed913db531e2856d744dcddd3a45",
+    "src/trafik/sonuclar.py": "362861a9a6c54b625dc2a5269e824b4db12b029465846f901f7baa24be3c61f3",
     "src/trafik/sprint.py": "b8c4ed57734a8728c07921aa192b90aa0e234826a17aa25362c48c646e6ec17d",
     "src/trafik/sumo_ag.py": "a6df502ef8c6b07d2c16c6c8b971f3dafa4982066257d5b4cfff0f283ec077fb",
     "src/trafik/takip.py": "5d139961336ea66ca6d322091479e3f7fc33e548740dcf1a7867817c3e3f24f9",
-    "src/trafik/uyarlamali.py": "758829ca7e31d4d7e674470aa83637841a217cdf097b15cd8785d7c71d9a3291",
+    "src/trafik/uyarlamali.py": "d910f3044ecd905b3e79e9693bffa34753fb935296888ab958363d4f9f0076d9",
     "src/trafik/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   },
   "scope": "Current rebuilt tracking, calibration and newly selected fixed plan; same video demand and three driver seeds. Retrospective simulation.",
@@ -85,7 +88,13 @@
       "ort_gecikme_tohum_araligi_s": [
         19.3,
         19.6
-      ]
+      ],
+      "kol_p95_bekleme_s": {
+        "from west": 61.5,
+        "from east": 39.0,
+        "from south (northbound)": 61.5,
+        "from north (southbound)": 50.5
+      }
     },
     "agent_recorded": {
       "kol_bekleme_s": {
@@ -138,7 +147,13 @@
       "ort_gecikme_tohum_araligi_s": [
         17.8,
         18.0
-      ]
+      ],
+      "kol_p95_bekleme_s": {
+        "from west": 64.9,
+        "from east": 42.4,
+        "from south (northbound)": 57.3,
+        "from north (southbound)": 46.5
+      }
     },
     "longest_wait": {
       "kol_bekleme_s": {
@@ -191,7 +206,13 @@
       "ort_gecikme_tohum_araligi_s": [
         17.6,
         17.9
-      ]
+      ],
+      "kol_p95_bekleme_s": {
+        "from west": 81.4,
+        "from east": 50.1,
+        "from south (northbound)": 53.8,
+        "from north (southbound)": 41.0
+      }
     },
     "weighted": {
       "kol_bekleme_s": {
@@ -244,10 +265,16 @@
       "ort_gecikme_tohum_araligi_s": [
         19.9,
         20.4
-      ]
+      ],
+      "kol_p95_bekleme_s": {
+        "from west": 61.2,
+        "from east": 46.5,
+        "from south (northbound)": 34.0,
+        "from north (southbound)": 58.0
+      }
     }
   },
   "post_evaluation_changes": [
-    "Agent response checkpoint/error handling only; simulation, plans, demand and measured values unchanged."
+    "The four published policies were rerun on the same demand and seeds. All existing displayed loss, approach-wait and completion metrics were reproduced; approach p95 was added."
   ]
 }
